@@ -1,0 +1,27 @@
+{
+  "name": "monitorhealth-backend",
+  "version": "1.0.0",
+  "description": "Self-hosted API monitoring system - Backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "keywords": ["monitoring", "health-check", "api-monitoring"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "mongoose": "^8.19.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.6.1",
+    "cors": "^2.8.5",
+    "axios": "^1.13.1",
+    "nodemailer": "^6.10.1",
+    "node-cron": "^3.0.3",
+    "express-validator": "^7.3.0"
+  }
+}
