@@ -536,7 +536,4 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 For issues and questions, please create an issue on GitHub.
 
 ---
-
 **Built with ❤️ using Node.js, MongoDB, Next.js, and TailwindCSS**
-#   m o n i t o r - h e a l t h  
- 
