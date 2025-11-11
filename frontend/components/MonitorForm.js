@@ -130,7 +130,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
             >
               <option value="none">None</option>
               <option value="basic">Basic Auth</option>
-              <option value="token">Token Auth</option>
+              <option value="token">Bearer Token</option>
               <option value="login">Login Auth</option>
             </select>
           </div>
@@ -159,48 +159,19 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
           )}
 
           {formData.authType === 'token' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Token URL</label>
-                <input
-                  type="url"
-                  value={formData.authConfig.tokenUrl || ''}
-                  onChange={(e) => handleAuthConfigChange('tokenUrl', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="https://api.example.com/auth/token"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    value={formData.authConfig.username || ''}
-                    onChange={(e) => handleAuthConfigChange('username', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={formData.authConfig.password || ''}
-                    onChange={(e) => handleAuthConfigChange('password', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Token Field</label>
-                <input
-                  type="text"
-                  value={formData.authConfig.tokenField || 'token'}
-                  onChange={(e) => handleAuthConfigChange('tokenField', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="token"
-                />
-              </div>
-            </>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+              <textarea
+                value={formData.authConfig.staticToken || ''}
+                onChange={(e) => handleAuthConfigChange('staticToken', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                rows={3}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Enter your Bearer token. The monitor will send: Authorization: Bearer &lt;your-token&gt;
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -257,7 +228,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
             placeholder="admin@example.com, ops@example.com"
           />
           <p className="mt-1 text-sm text-gray-500">
-            Emails will be sent when monitor status changes (up → down or down → up)
+            Emails will be sent when monitor status changes (up → down or down → up). Leave blank to use the default alert email from Settings.
           </p>
         </div>
       </div>

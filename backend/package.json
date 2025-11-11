@@ -7,21 +7,44 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node scripts/seed.js"
+    "db:setup": "node setup-db.js",
+    "db:push": "drizzle-kit push:pg",
+    "db:studio": "drizzle-kit studio",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
-  "keywords": ["monitoring", "health-check", "api-monitoring"],
+  "keywords": [
+    "monitoring",
+    "health-check",
+    "api-monitoring"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.21.2",
-    "mongoose": "^8.19.2",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.6.1",
+    "@neondatabase/serverless": "^0.9.5",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "axios": "^1.13.1",
-    "nodemailer": "^6.10.1",
-    "node-cron": "^3.0.3",
-    "express-validator": "^7.3.0"
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.29.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.10",
+    "p-limit": "^7.2.0",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.7",
+    "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "drizzle-kit": "^0.20.18",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2"
   }
 }

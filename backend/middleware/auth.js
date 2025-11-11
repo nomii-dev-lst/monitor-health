@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/index.js';
+import { UserRepository } from '../repositories/index.js';
 
 /**
  * JWT Authentication Middleware
@@ -13,22 +13,22 @@ export const authenticateToken = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access token required' 
+      return res.status(401).json({
+        success: false,
+        message: 'Access token required'
       });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Find user
-    const user = await User.findById(decoded.userId);
-    
+    const user = await UserRepository.findById(decoded.userId);
+
     if (!user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -37,23 +37,26 @@ export const authenticateToken = async (req, res, next) => {
     next();
 
   } catch (error) {
+    // Expected JWT errors - don't log these
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid token' 
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token expired' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token'
       });
     }
 
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Authentication failed' 
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired'
+      });
+    }
+
+    // Only log unexpected errors
+    console.error('Unexpected authentication error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Authentication service error'
     });
   }
 };

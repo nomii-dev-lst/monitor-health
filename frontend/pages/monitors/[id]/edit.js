@@ -3,8 +3,11 @@ import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
 import MonitorForm from '../../../components/MonitorForm';
 import { monitorsAPI } from '../../../lib/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import Loading from '../../../components/Loading';
 
 export default function EditMonitor() {
+  const { loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const { id } = router.query;
   const [monitor, setMonitor] = useState(null);
@@ -13,10 +16,10 @@ export default function EditMonitor() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (id) {
+    if (!authLoading && isAuthenticated && id) {
       loadMonitor();
     }
-  }, [id]);
+  }, [authLoading, isAuthenticated, id]);
 
   const loadMonitor = async () => {
     try {
@@ -54,12 +57,8 @@ export default function EditMonitor() {
     router.push('/monitors');
   };
 
-  if (isFetching) {
-    return (
-      <Layout>
-        <div className="text-center py-12">Loading monitor...</div>
-      </Layout>
-    );
+  if (authLoading || isFetching) {
+    return <Loading message="Loading monitor..." />;
   }
 
   if (!monitor) {

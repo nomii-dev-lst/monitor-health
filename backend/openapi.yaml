@@ -1,0 +1,943 @@
+openapi: 3.0.3
+info:
+  title: MonitorHealth Backend API
+  description: REST API for monitoring website health and uptime
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: /api
+    description: API Base Path
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token for authenticated requests
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+      required:
+        - id
+        - username
+        - email
+
+    Monitor:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Production API
+        url:
+          type: string
+          format: uri
+          example: https://api.example.com
+        authType:
+          type: string
+          enum: [none, basic]
+          default: none
+        authConfig:
+          type: object
+          description: Authentication configuration object
+        validationRules:
+          type: object
+          description: Validation rules for health checks
+        checkInterval:
+          type: integer
+          description: Check interval in minutes
+          example: 5
+        alertEmails:
+          type: array
+          items:
+            type: string
+            format: email
+          example: ["alerts@example.com"]
+        enabled:
+          type: boolean
+          default: true
+        userId:
+          type: integer
+          example: 1
+        nextCheck:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          format: float
+          description: Uptime percentage
+          example: 99.9
+      required:
+        - name
+        - url
+
+    Check:
+      type: object
+      properties:
+        id:
+          type: integer
+        monitorId:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [success, failure]
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+        statusCode:
+          type: integer
+          example: 200
+        errorMessage:
+          type: string
+          nullable: true
+
+    Log:
+      type: object
+      properties:
+        id:
+          type: integer
+        monitorId:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [info, warning, error]
+        message:
+          type: string
+
+    Setting:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: object
+          description: Setting value (can be any type)
+        description:
+          type: string
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Error message description
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/signup:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  example: johndoe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        "201":
+          description: User successfully registered
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=abc123; HttpOnly; Path=/
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  accessToken:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /auth/login:
+    post:
+      summary: Authenticate user and obtain access token
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: johndoe
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=abc123; HttpOnly; Path=/
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  accessToken:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token using refresh token cookie
+      tags:
+        - Authentication
+      security: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  accessToken:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/logout:
+    post:
+      summary: Logout user and clear refresh token
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refreshToken=; HttpOnly; Path=/; Max-Age=0
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /monitors:
+    get:
+      summary: Get all monitors for current user
+      tags:
+        - Monitors
+      responses:
+        "200":
+          description: List of monitors with uptime stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  monitors:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Monitor"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    post:
+      summary: Create a new monitor
+      tags:
+        - Monitors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - url
+              properties:
+                name:
+                  type: string
+                  example: Production API
+                url:
+                  type: string
+                  format: uri
+                  example: https://api.example.com
+                authType:
+                  type: string
+                  enum: [none, basic]
+                  default: none
+                authConfig:
+                  type: object
+                validationRules:
+                  type: object
+                checkInterval:
+                  type: integer
+                  example: 5
+                alertEmails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                enabled:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Monitor created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  monitor:
+                    $ref: "#/components/schemas/Monitor"
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /monitors/{id}:
+    get:
+      summary: Get a specific monitor by ID
+      tags:
+        - Monitors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monitor details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  monitor:
+                    $ref: "#/components/schemas/Monitor"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    put:
+      summary: Update a monitor
+      tags:
+        - Monitors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+                authType:
+                  type: string
+                  enum: [none, basic]
+                authConfig:
+                  type: object
+                validationRules:
+                  type: object
+                checkInterval:
+                  type: integer
+                alertEmails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Monitor updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  monitor:
+                    $ref: "#/components/schemas/Monitor"
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      summary: Delete a monitor
+      tags:
+        - Monitors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monitor deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /monitors/{id}/check:
+    post:
+      summary: Trigger a manual health check
+      tags:
+        - Monitors
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Check performed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  checkResult:
+                    $ref: "#/components/schemas/Check"
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /checks/{monitorId}:
+    get:
+      summary: Get check history for a monitor
+      tags:
+        - Checks
+      parameters:
+        - name: monitorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Check history with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  checks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Check"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /checks/{monitorId}/stats:
+    get:
+      summary: Get uptime and latency statistics
+      tags:
+        - Checks
+      parameters:
+        - name: monitorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+          description: Number of hours to aggregate stats for
+      responses:
+        "200":
+          description: Statistics for the specified time period
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    type: object
+                    properties:
+                      uptime:
+                        type: number
+                        format: float
+                        example: 99.5
+                      averageLatency:
+                        type: number
+                        format: float
+                        example: 150.5
+                      totalChecks:
+                        type: integer
+                        example: 288
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /checks/{monitorId}/chart:
+    get:
+      summary: Get check data for charting
+      tags:
+        - Checks
+      parameters:
+        - name: monitorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+          description: Number of hours of data to return
+      responses:
+        "200":
+          description: Chronological check data for visualization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format: date-time
+                        status:
+                          type: string
+                        responseTime:
+                          type: integer
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /logs:
+    get:
+      summary: Get logs for user's monitors
+      tags:
+        - Logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of logs with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  logs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Log"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /logs/stats:
+    get:
+      summary: Get aggregated log statistics
+      tags:
+        - Logs
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+          description: Number of hours to aggregate stats for
+      responses:
+        "200":
+          description: Recent check statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    type: object
+                    properties:
+                      totalChecks:
+                        type: integer
+                      successRate:
+                        type: number
+                        format: float
+                      averageLatency:
+                        type: number
+                        format: float
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /settings/test-email:
+    post:
+      summary: Send a test email
+      tags:
+        - Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: test@example.com
+      responses:
+        "200":
+          description: Test email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /settings:
+    get:
+      summary: Get all settings
+      tags:
+        - Settings
+      responses:
+        "200":
+          description: All stored settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  settings:
+                    type: object
+                    additionalProperties: true
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /settings/{key}:
+    get:
+      summary: Get a specific setting by key
+      tags:
+        - Settings
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Setting value or null if not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  setting:
+                    $ref: "#/components/schemas/Setting"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    put:
+      summary: Update a setting
+      tags:
+        - Settings
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  description: Setting value (any type)
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Setting updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  setting:
+                    $ref: "#/components/schemas/Setting"
+                  message:
+                    type: string
+        "400":
+          description: Validation error (smtp key cannot be updated via API)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Monitors
+    description: Website monitoring endpoints
+  - name: Checks
+    description: Health check history and statistics
+  - name: Logs
+    description: System logs and monitoring events
+  - name: Settings
+    description: Application settings management

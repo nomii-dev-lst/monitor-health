@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { authAPI } from '../lib/api';
+import Link from 'next/link';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const router = useRouter();
+  const { login: authLogin, isAuthenticated, loading } = useAuth();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check if already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      router.push('/dashboard');
+    // Redirect if already authenticated
+    if (!loading && isAuthenticated) {
+      const callbackUrl = router.query.callbackUrl || '/dashboard';
+      router.push(callbackUrl);
     }
-  }, [router]);
+  }, [isAuthenticated, loading, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,20 +24,30 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await authAPI.login(credentials.username, credentials.password);
+      const result = await authLogin(credentials.username, credentials.password);
       
-      if (response.success) {
-        localStorage.setItem('token', response.token);
-        router.push('/dashboard');
+      if (result.success) {
+        // Redirect to callback URL if present, otherwise dashboard
+        const callbackUrl = router.query.callbackUrl || '/dashboard';
+        router.push(callbackUrl);
       } else {
-        setError(response.message || 'Login failed');
+        setError(result.message || 'Login failed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -105,8 +117,11 @@ export default function Login() {
             </button>
           </div>
 
-          <div className="text-sm text-center text-gray-500">
-            Default credentials: <span className="font-medium">admin / admin123</span>
+          <div className="text-sm text-center">
+            <span className="text-gray-600">Don't have an account? </span>
+            <Link href="/signup" className="font-medium text-primary-600 hover:text-primary-500">
+              Sign up
+            </Link>
           </div>
         </form>
       </div>

@@ -1,6 +1,8 @@
 import cron from 'node-cron';
-import { Monitor } from '../models/index.js';
+import pLimit from 'p-limit';
+import { MonitorRepository } from '../repositories/index.js';
 import MonitorService from './monitorService.js';
+import UserSessionService from './userSessionService.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -15,6 +17,7 @@ export class SchedulerService {
   /**
    * Start the scheduler
    * Runs every minute to check which monitors need to be checked
+   * NOTE: Monitors are only initialized when users log in
    */
   static start() {
     if (this.isRunning) {
@@ -22,18 +25,13 @@ export class SchedulerService {
       return;
     }
 
-    logger.info('Starting scheduler service...');
-
-    // Initialize next check times for all monitors on startup
-    this.initializeMonitors();
-
     // Run every minute
     this.cronJob = cron.schedule('* * * * *', async () => {
       await this.checkScheduledMonitors();
     });
 
     this.isRunning = true;
-    logger.info('✓ Scheduler service started (runs every 1 minute)');
+    logger.info('Scheduler service started (interval: 1 minute)');
   }
 
   /**
@@ -54,13 +52,13 @@ export class SchedulerService {
    */
   static async initializeMonitors() {
     try {
-      const monitors = await Monitor.find({ enabled: true });
+      const monitors = await MonitorRepository.findEnabled();
 
       for (const monitor of monitors) {
         if (!monitor.nextCheckTime) {
           // Schedule first check
           const nextCheck = new Date();
-          
+
           if (monitor.lastCheckTime) {
             // If monitor was checked before, schedule based on last check
             nextCheck.setTime(monitor.lastCheckTime.getTime() + monitor.checkInterval * 60 * 1000);
@@ -69,8 +67,7 @@ export class SchedulerService {
             nextCheck.setMinutes(nextCheck.getMinutes() + 1);
           }
 
-          monitor.nextCheckTime = nextCheck;
-          await monitor.save();
+          await MonitorRepository.updateById(monitor.id, { nextCheckTime: nextCheck });
 
           logger.info(`Initialized monitor "${monitor.name}" - next check at ${nextCheck.toLocaleString()}`);
         }
@@ -84,29 +81,37 @@ export class SchedulerService {
 
   /**
    * Check which monitors are due for a health check and execute them
+   * Only checks monitors for currently logged-in users
    */
   static async checkScheduledMonitors() {
     try {
-      const now = new Date();
+      // Get active user IDs
+      const activeUserIds = UserSessionService.getActiveUsers();
 
-      // Find all enabled monitors that are due for a check
-      const dueMonitors = await Monitor.find({
-        enabled: true,
-        nextCheckTime: { $lte: now }
-      });
+      if (activeUserIds.length === 0) {
+        // No users logged in, skip checking
+        return;
+      }
+
+      // Find enabled monitors that are due for a check (filtered by active users)
+      const dueMonitors = await MonitorRepository.findDueForCheck(activeUserIds);
 
       if (dueMonitors.length === 0) {
         return; // No monitors due
       }
 
-      logger.info(`Found ${dueMonitors.length} monitor(s) due for check`);
+      logger.info(`Found ${dueMonitors.length} monitor(s) due for check (${activeUserIds.length} active user(s))`);
 
-      // Execute checks in parallel (with reasonable concurrency)
-      const checkPromises = dueMonitors.map(monitor => 
-        this.executeMonitorCheck(monitor)
+      // Execute checks with concurrency limit to prevent overwhelming the system
+      const limit = pLimit(10); // Max 10 concurrent monitor checks
+
+      const checkPromises = dueMonitors.map(monitor =>
+        limit(() => this.executeMonitorCheck(monitor))
       );
 
       await Promise.allSettled(checkPromises);
+
+      logger.debug(`Completed ${dueMonitors.length} monitor check(s)`);
 
     } catch (error) {
       logger.error('Error in scheduler:', error.message);
@@ -118,39 +123,53 @@ export class SchedulerService {
    * @param {Object} monitor - Monitor document
    */
   static async executeMonitorCheck(monitor) {
+    const startTime = Date.now();
+
     try {
-      // Update nextCheckTime immediately to prevent duplicate checks
-      const nextCheck = new Date();
+      // Calculate next check time BEFORE executing to maintain accurate intervals
+      // Base it on the current nextCheckTime to avoid drift from check execution time
+      const nextCheck = new Date(monitor.nextCheckTime || new Date());
       nextCheck.setMinutes(nextCheck.getMinutes() + monitor.checkInterval);
-      
-      await Monitor.findByIdAndUpdate(monitor._id, {
+
+      // Update nextCheckTime immediately to prevent duplicate checks
+      await MonitorRepository.updateById(monitor.id, {
         nextCheckTime: nextCheck
       });
 
-      // Execute the check
+      // Execute the check (can take time, but won't affect next interval)
       await MonitorService.executeCheck(monitor);
+
+      const duration = Date.now() - startTime;
+      logger.debug(`Monitor "${monitor.name}" check completed in ${duration}ms`);
 
     } catch (error) {
       logger.error(`Failed to execute check for monitor ${monitor.name}:`, error.message);
-      
-      // Even on error, schedule next check to avoid getting stuck
+
+      // On error, still schedule next check to avoid getting stuck
+      // But add a small delay to prevent rapid retries on persistent failures
       const nextCheck = new Date();
-      nextCheck.setMinutes(nextCheck.getMinutes() + monitor.checkInterval);
-      
-      await Monitor.findByIdAndUpdate(monitor._id, {
-        nextCheckTime: nextCheck
-      });
+      const retryDelay = Math.min(monitor.checkInterval, 5); // Max 5 min delay
+      nextCheck.setMinutes(nextCheck.getMinutes() + retryDelay);
+
+      try {
+        await MonitorRepository.updateById(monitor.id, {
+          nextCheckTime: nextCheck
+        });
+      } catch (updateError) {
+        logger.error(`Failed to update nextCheckTime for monitor ${monitor.name}:`, updateError.message);
+      }
     }
   }
 
   /**
    * Manually trigger a check for a specific monitor
-   * @param {String} monitorId 
+   * @param {String|Object} monitorIdOrDoc - Monitor ID string or monitor document
    * @returns {Object} Check result
    */
-  static async triggerManualCheck(monitorId) {
-    logger.info(`Manual check triggered for monitor: ${monitorId}`);
-    return await MonitorService.executeCheck(monitorId);
+  static async triggerManualCheck(monitorIdOrDoc) {
+    const identifier = typeof monitorIdOrDoc === 'string' ? monitorIdOrDoc : monitorIdOrDoc.id;
+    logger.info(`Manual check triggered for monitor: ${identifier}`);
+    return await MonitorService.executeCheck(monitorIdOrDoc);
   }
 
   /**

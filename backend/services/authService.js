@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
  */
 
 export class AuthService {
-  
+
   /**
    * Authenticate and return headers/cookies for the monitor request
    * @param {Object} monitor - Monitor document with authType and authConfig
@@ -18,21 +18,21 @@ export class AuthService {
 
     try {
       switch (authType) {
-        case 'none':
-          return { headers: {}, cookies: '' };
-        
-        case 'basic':
-          return this.basicAuth(authConfig);
-        
-        case 'token':
-          return await this.tokenAuth(authConfig);
-        
-        case 'login':
-          return await this.loginAuth(authConfig);
-        
-        default:
-          logger.warn(`Unknown auth type: ${authType}`);
-          return { headers: {}, cookies: '' };
+      case 'none':
+        return { headers: {}, cookies: '' };
+
+      case 'basic':
+        return this.basicAuth(authConfig);
+
+      case 'token':
+        return await this.tokenAuth(authConfig);
+
+      case 'login':
+        return await this.loginAuth(authConfig);
+
+      default:
+        logger.warn(`Unknown auth type: ${authType}`);
+        return { headers: {}, cookies: '' };
       }
     } catch (error) {
       logger.error(`Authentication failed for monitor ${monitor.name}:`, error.message);
@@ -46,13 +46,13 @@ export class AuthService {
    */
   static basicAuth(config) {
     const { username, password } = config;
-    
+
     if (!username || !password) {
       throw new Error('Basic auth requires username and password');
     }
 
     const token = Buffer.from(`${username}:${password}`).toString('base64');
-    
+
     return {
       headers: {
         'Authorization': `Basic ${token}`
@@ -62,21 +62,33 @@ export class AuthService {
   }
 
   /**
-   * Token-based authentication (fetch token from endpoint)
-   * @param {Object} config - { tokenUrl, username, password, tokenField, headerName }
+   * Token-based authentication (fetch token from endpoint or use static token)
+   * @param {Object} config - { tokenUrl, username, password, tokenField, headerName, staticToken }
    */
   static async tokenAuth(config) {
-    const { 
-      tokenUrl, 
-      username, 
-      password, 
+    const {
+      tokenUrl,
+      username,
+      password,
       tokenField = 'token',
       headerName = 'Authorization',
-      headerPrefix = 'Bearer'
+      headerPrefix = 'Bearer',
+      staticToken
     } = config;
 
+    // Support static tokens without requesting a new one
+    if (staticToken) {
+      const authValue = headerPrefix ? `${headerPrefix} ${staticToken}`.trim() : staticToken;
+      return {
+        headers: {
+          [headerName || 'Authorization']: authValue
+        },
+        cookies: ''
+      };
+    }
+
     if (!tokenUrl) {
-      throw new Error('Token auth requires tokenUrl');
+      throw new Error('Token auth requires tokenUrl or staticToken');
     }
 
     // Request token
@@ -89,16 +101,16 @@ export class AuthService {
 
     // Extract token from response
     const token = this.extractValue(response.data, tokenField);
-    
+
     if (!token) {
       throw new Error(`Token not found in response at field: ${tokenField}`);
     }
 
-    const authValue = headerPrefix ? `${headerPrefix} ${token}` : token;
+    const authValue = headerPrefix ? `${headerPrefix} ${token}`.trim() : token;
 
     return {
       headers: {
-        [headerName]: authValue
+        [headerName || 'Authorization']: authValue
       },
       cookies: ''
     };
@@ -132,7 +144,7 @@ export class AuthService {
 
     // Extract cookie from response
     const cookies = response.headers['set-cookie'];
-    
+
     if (tokenField) {
       // Token in response body
       const token = this.extractValue(response.data, tokenField);
@@ -156,13 +168,13 @@ export class AuthService {
 
   /**
    * Extract value from nested object using dot notation
-   * @param {Object} obj 
+   * @param {Object} obj
    * @param {String} path - e.g., 'data.token' or 'access_token'
    */
   static extractValue(obj, path) {
     const keys = path.split('.');
     let value = obj;
-    
+
     for (const key of keys) {
       if (value && typeof value === 'object' && key in value) {
         value = value[key];
@@ -170,7 +182,7 @@ export class AuthService {
         return null;
       }
     }
-    
+
     return value;
   }
 }

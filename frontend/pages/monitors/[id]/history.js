@@ -5,9 +5,13 @@ import HistoryTable from '../../../components/HistoryTable';
 import LatencyChart from '../../../components/LatencyChart';
 import UptimeChart from '../../../components/UptimeChart';
 import { monitorsAPI, checksAPI } from '../../../lib/api';
-import { formatRelativeTime, getStatusBadgeColor } from '../../../lib/utils';
+import { formatRelativeTime } from '../../../lib/utils';
+import { StatusIndicator } from '../../../components/StatusBadge';
+import { useAuth } from '../../../contexts/AuthContext';
+import Loading from '../../../components/Loading';
 
 export default function MonitorHistory() {
+  const { loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const { id } = router.query;
   const [monitor, setMonitor] = useState(null);
@@ -16,12 +20,13 @@ export default function MonitorHistory() {
   const [stats, setStats] = useState(null);
   const [timeRange, setTimeRange] = useState(24);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCheckRunning, setIsCheckRunning] = useState(false);
 
   useEffect(() => {
-    if (id) {
+    if (!authLoading && isAuthenticated && id) {
       loadData();
     }
-  }, [id, timeRange]);
+  }, [authLoading, isAuthenticated, id, timeRange]);
 
   const loadData = async () => {
     try {
@@ -44,21 +49,20 @@ export default function MonitorHistory() {
   };
 
   const handleRunCheck = async () => {
+    setIsCheckRunning(true);
     try {
       await monitorsAPI.triggerCheck(id);
-      alert('Check triggered! Refreshing data...');
-      setTimeout(loadData, 2000);
+      // Reload data after check completes
+      await loadData();
     } catch (error) {
-      alert('Failed to trigger check');
+      alert('Failed to trigger check: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsCheckRunning(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="text-center py-12">Loading monitor history...</div>
-      </Layout>
-    );
+  if (authLoading || isLoading) {
+    return <Loading message="Loading monitor history..." />;
   }
 
   if (!monitor) {
@@ -76,7 +80,7 @@ export default function MonitorHistory() {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center space-x-3">
-              <span className={`w-4 h-4 rounded-full ${getStatusBadgeColor(monitor.status)}`}></span>
+              <StatusIndicator status={monitor.status} size="lg" />
               <h1 className="text-3xl font-bold text-gray-900">{monitor.name}</h1>
             </div>
             <p className="mt-1 text-sm text-gray-500 break-all">{monitor.url}</p>
@@ -86,9 +90,20 @@ export default function MonitorHistory() {
           </div>
           <button
             onClick={handleRunCheck}
-            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+            disabled={isCheckRunning}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
-            Run Check Now
+            {isCheckRunning ? (
+              <>
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Running Check...</span>
+              </>
+            ) : (
+              <span>Run Check Now</span>
+            )}
           </button>
         </div>
 
