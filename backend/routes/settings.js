@@ -1,10 +1,9 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import {
-  sendTestEmail,
   getAllSettings,
   getSettingByKey,
-  updateSetting
+  updateSetting,
 } from '../controllers/settingsController.js';
 
 const router = express.Router();
@@ -12,12 +11,7 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateToken);
 
-/**
- * POST /api/settings/test-email
- * Send a test email to verify SMTP configuration
- * IMPORTANT: This must come BEFORE /:key route
- */
-router.post('/test-email', sendTestEmail);
+// Remove the test-email route
 
 /**
  * GET /api/settings

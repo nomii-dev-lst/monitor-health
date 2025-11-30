@@ -5,7 +5,11 @@ import cookieParser from 'cookie-parser';
 import { connectDatabase } from './config/database.js';
 import SchedulerService from './services/schedulerService.js';
 import EmailService from './services/emailService.js';
-import logger from './utils/logger.js';
+import logger, {
+  initLogger,
+  getMiddleware,
+  closeLogger,
+} from './utils/logger.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -52,11 +56,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  logger.debug(`${req.method} ${req.path}`);
-  next();
-});
+// Logger middleware will be added after initialization
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -80,28 +80,21 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-  });
-});
+// 404 handler - will be replaced by logger middleware
 
-// Error handler
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  logger.error('Server error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
+// Error handler - will be replaced by logger middleware
 
 // Start server
 async function startServer() {
   try {
+    // Initialize logger first
+    await initLogger(app);
+
+    // Add logger middleware
+    const middleware = getMiddleware();
+    app.use(middleware.request);
+    app.use(middleware.error);
+
     // Connect to database
     await connectDatabase();
 
@@ -113,6 +106,10 @@ async function startServer() {
 
     // Start scheduler
     SchedulerService.start();
+
+    // Add 404 and error handlers after routes
+    app.use(middleware.notFound);
+    app.use(middleware.errorHandler);
 
     // Start HTTP server
     app.listen(PORT, () => {
@@ -128,15 +125,17 @@ async function startServer() {
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully...');
   SchedulerService.stop();
+  await closeLogger();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully...');
   SchedulerService.stop();
+  await closeLogger();
   process.exit(0);
 });
 

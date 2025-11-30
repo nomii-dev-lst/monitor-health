@@ -11,32 +11,26 @@ const router = express.Router();
 const authenticateSSEToken = async (req, res, next) => {
   try {
     const token = req.query.token;
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required'
+        message: 'Access token is required',
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Debug: log the decoded token
-    logger.info('SSE decoded token:', JSON.stringify(decoded));
-    
+
     // Import UserRepository here to avoid circular dependency
     const { UserRepository } = await import('../repositories/index.js');
-    
+
     // Find user using the userId from the token
     const user = await UserRepository.findById(decoded.userId);
-    
-    // Debug: log the found user
-    logger.info('SSE found user:', JSON.stringify(user));
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
@@ -44,26 +38,24 @@ const authenticateSSEToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    logger.error('SSE token verification failed:', error);
-    
     // Handle specific JWT errors
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token'
+        message: 'Invalid token',
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
-        message: 'Token expired'
+        message: 'Token expired',
       });
     }
-    
+
     return res.status(401).json({
       success: false,
-      message: 'Authentication failed'
+      message: 'Authentication failed',
     });
   }
 };
@@ -74,34 +66,23 @@ const authenticateSSEToken = async (req, res, next) => {
  */
 router.get('/events', authenticateSSEToken, (req, res) => {
   try {
-    // Debug: log the user object
-    logger.info('SSE user object:', JSON.stringify(req.user));
-    
     const userId = req.user?.id;
-    
+
     if (!userId) {
       logger.error('User ID is undefined in SSE request');
       return res.status(401).json({
         success: false,
-        message: 'User ID not found'
+        message: 'User ID not found',
       });
     }
-    
-    logger.info(`SSE connection request from user ${userId}`);
-    
+
     // Add the connection to SSE service
     sseService.addConnection(userId, res);
-    
-    // Keep the connection alive
-    req.on('close', () => {
-      logger.info(`SSE connection closed for user ${userId}`);
-    });
-    
   } catch (error) {
     logger.error('Error establishing SSE connection:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to establish SSE connection'
+      message: 'Failed to establish SSE connection',
     });
   }
 });
@@ -115,18 +96,18 @@ router.get('/status', authenticateSSEToken, (req, res) => {
     const status = {
       totalConnections: sseService.getConnectionCount(),
       activeUsers: sseService.getUserCount(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     res.json({
       success: true,
-      data: status
+      data: status,
     });
   } catch (error) {
     logger.error('Error getting SSE status:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get SSE status'
+      message: 'Failed to get SSE status',
     });
   }
 });

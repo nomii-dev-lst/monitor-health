@@ -19,22 +19,22 @@ class SSEService {
     if (!this.connections.has(userId)) {
       this.connections.set(userId, new Set());
     }
-    
+
     this.connections.get(userId).add(res);
-    
+
     // Set up SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
+      'Access-Control-Allow-Headers': 'Cache-Control',
     });
 
     // Send initial connection event
-    this.sendToConnection(res, 'connected', { 
+    this.sendToConnection(res, 'connected', {
       timestamp: new Date().toISOString(),
-      userId: userId 
+      userId: userId,
     });
 
     // Handle connection cleanup
@@ -46,8 +46,6 @@ class SSEService {
       logger.error(`SSE connection error for user ${userId}:`, error);
       this.removeConnection(userId, res);
     });
-
-    logger.info(`SSE connection established for user ${userId}. Total connections: ${this.getConnectionCount()}`);
   }
 
   /**
@@ -58,14 +56,12 @@ class SSEService {
   removeConnection(userId, res) {
     if (this.connections.has(userId)) {
       this.connections.get(userId).delete(res);
-      
+
       // Clean up empty user connections
       if (this.connections.get(userId).size === 0) {
         this.connections.delete(userId);
       }
     }
-    
-    logger.info(`SSE connection closed for user ${userId}`);
   }
 
   /**
@@ -96,7 +92,7 @@ class SSEService {
     const connections = this.connections.get(userId);
     const deadConnections = new Set();
 
-    connections.forEach(res => {
+    connections.forEach((res) => {
       try {
         this.sendToConnection(res, 'log', logData);
       } catch (error) {
@@ -106,7 +102,7 @@ class SSEService {
     });
 
     // Clean up dead connections
-    deadConnections.forEach(res => {
+    deadConnections.forEach((res) => {
       this.removeConnection(userId, res);
     });
   }
@@ -124,7 +120,7 @@ class SSEService {
     const connections = this.connections.get(userId);
     const deadConnections = new Set();
 
-    connections.forEach(res => {
+    connections.forEach((res) => {
       try {
         this.sendToConnection(res, 'stats', statsData);
       } catch (error) {
@@ -134,7 +130,7 @@ class SSEService {
     });
 
     // Clean up dead connections
-    deadConnections.forEach(res => {
+    deadConnections.forEach((res) => {
       this.removeConnection(userId, res);
     });
   }
@@ -145,7 +141,7 @@ class SSEService {
    */
   getConnectionCount() {
     let total = 0;
-    this.connections.forEach(connections => {
+    this.connections.forEach((connections) => {
       total += connections.size;
     });
     return total;
@@ -164,11 +160,11 @@ class SSEService {
    */
   sendHeartbeat() {
     const heartbeatData = { timestamp: new Date().toISOString() };
-    
+
     this.connections.forEach((connections, userId) => {
       const deadConnections = new Set();
-      
-      connections.forEach(res => {
+
+      connections.forEach((res) => {
         try {
           this.sendToConnection(res, 'heartbeat', heartbeatData);
         } catch {
@@ -177,7 +173,7 @@ class SSEService {
       });
 
       // Clean up dead connections
-      deadConnections.forEach(res => {
+      deadConnections.forEach((res) => {
         this.removeConnection(userId, res);
       });
     });

@@ -2,7 +2,6 @@ import cron from 'node-cron';
 import pLimit from 'p-limit';
 import { MonitorRepository } from '../repositories/index.js';
 import MonitorService from './monitorService.js';
-import UserSessionService from './userSessionService.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -61,15 +60,22 @@ export class SchedulerService {
 
           if (monitor.lastCheckTime) {
             // If monitor was checked before, schedule based on last check
-            nextCheck.setTime(monitor.lastCheckTime.getTime() + monitor.checkInterval * 60 * 1000);
+            nextCheck.setTime(
+              monitor.lastCheckTime.getTime() +
+                monitor.checkInterval * 60 * 1000,
+            );
           } else {
             // If never checked, schedule for immediate check
             nextCheck.setMinutes(nextCheck.getMinutes() + 1);
           }
 
-          await MonitorRepository.updateById(monitor.id, { nextCheckTime: nextCheck });
+          await MonitorRepository.updateById(monitor.id, {
+            nextCheckTime: nextCheck,
+          });
 
-          logger.info(`Initialized monitor "${monitor.name}" - next check at ${nextCheck.toLocaleString()}`);
+          logger.info(
+            `Initialized monitor "${monitor.name}" - next check at ${nextCheck.toLocaleString()}`,
+          );
         }
       }
 
@@ -83,36 +89,31 @@ export class SchedulerService {
    * Check which monitors are due for a health check and execute them
    * Only checks monitors for currently logged-in users
    */
+  /**
+   * Check which monitors are due for a health check and execute them
+   * Runs for all enabled monitors regardless of user login status
+   */
   static async checkScheduledMonitors() {
     try {
-      // Get active user IDs
-      const activeUserIds = UserSessionService.getActiveUsers();
-
-      if (activeUserIds.length === 0) {
-        // No users logged in, skip checking
-        return;
-      }
-
-      // Find enabled monitors that are due for a check (filtered by active users)
-      const dueMonitors = await MonitorRepository.findDueForCheck(activeUserIds);
+      // Find all enabled monitors that are due for a check (no user filtering)
+      const dueMonitors = await MonitorRepository.findDueForCheck();
 
       if (dueMonitors.length === 0) {
         return; // No monitors due
       }
 
-      logger.info(`Found ${dueMonitors.length} monitor(s) due for check (${activeUserIds.length} active user(s))`);
+      logger.info(`Found ${dueMonitors.length} monitor(s) due for check`);
 
       // Execute checks with concurrency limit to prevent overwhelming the system
       const limit = pLimit(10); // Max 10 concurrent monitor checks
 
-      const checkPromises = dueMonitors.map(monitor =>
-        limit(() => this.executeMonitorCheck(monitor))
+      const checkPromises = dueMonitors.map((monitor) =>
+        limit(() => this.executeMonitorCheck(monitor)),
       );
 
       await Promise.allSettled(checkPromises);
 
       logger.debug(`Completed ${dueMonitors.length} monitor check(s)`);
-
     } catch (error) {
       logger.error('Error in scheduler:', error.message);
     }
@@ -133,17 +134,21 @@ export class SchedulerService {
 
       // Update nextCheckTime immediately to prevent duplicate checks
       await MonitorRepository.updateById(monitor.id, {
-        nextCheckTime: nextCheck
+        nextCheckTime: nextCheck,
       });
 
       // Execute the check (can take time, but won't affect next interval)
       await MonitorService.executeCheck(monitor);
 
       const duration = Date.now() - startTime;
-      logger.debug(`Monitor "${monitor.name}" check completed in ${duration}ms`);
-
+      logger.debug(
+        `Monitor "${monitor.name}" check completed in ${duration}ms`,
+      );
     } catch (error) {
-      logger.error(`Failed to execute check for monitor ${monitor.name}:`, error.message);
+      logger.error(
+        `Failed to execute check for monitor ${monitor.name}:`,
+        error.message,
+      );
 
       // On error, still schedule next check to avoid getting stuck
       // But add a small delay to prevent rapid retries on persistent failures
@@ -153,10 +158,13 @@ export class SchedulerService {
 
       try {
         await MonitorRepository.updateById(monitor.id, {
-          nextCheckTime: nextCheck
+          nextCheckTime: nextCheck,
         });
       } catch (updateError) {
-        logger.error(`Failed to update nextCheckTime for monitor ${monitor.name}:`, updateError.message);
+        logger.error(
+          `Failed to update nextCheckTime for monitor ${monitor.name}:`,
+          updateError.message,
+        );
       }
     }
   }
@@ -167,7 +175,8 @@ export class SchedulerService {
    * @returns {Object} Check result
    */
   static async triggerManualCheck(monitorIdOrDoc) {
-    const identifier = typeof monitorIdOrDoc === 'string' ? monitorIdOrDoc : monitorIdOrDoc.id;
+    const identifier =
+      typeof monitorIdOrDoc === 'string' ? monitorIdOrDoc : monitorIdOrDoc.id;
     logger.info(`Manual check triggered for monitor: ${identifier}`);
     return await MonitorService.executeCheck(monitorIdOrDoc);
   }
@@ -180,7 +189,7 @@ export class SchedulerService {
     return {
       isRunning: this.isRunning,
       cronExpression: '* * * * *',
-      description: 'Runs every 1 minute'
+      description: 'Runs every 1 minute',
     };
   }
 }

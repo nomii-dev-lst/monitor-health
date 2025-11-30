@@ -4,7 +4,6 @@
     "start:client": "cd frontend && bun dev",
     "start:server": "cd backend && bun dev",
     "build:frontend": "cd frontend && bun run build",
-
     "prodstart:all": "npm-run-all --parallel prodstart:frontend prodstart:backend",
     "prodstart:frontend": "cd frontend && bun run start",
     "prodstart:backend": "cd backend && bun run start"

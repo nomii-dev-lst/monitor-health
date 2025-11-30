@@ -1,5 +1,6 @@
 import { desc, count, eq } from 'drizzle-orm';
 import { getDb, schema } from '../db/index.js';
+import logger from '../utils/logger.js';
 
 const { checkResults, monitors } = schema;
 
@@ -25,7 +26,7 @@ export async function getLogs(req, res) {
         validationErrors: checkResults.validationErrors,
         responseData: checkResults.responseData,
         responseMetadata: checkResults.responseMetadata,
-        checkedAt: checkResults.checkedAt
+        checkedAt: checkResults.checkedAt,
       })
       .from(checkResults)
       .innerJoin(monitors, eq(checkResults.monitorId, monitors.id))
@@ -48,15 +49,23 @@ export async function getLogs(req, res) {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total
-      }
+        hasMore: offset + limit < total,
+      },
     });
   } catch (error) {
-    console.error('Error fetching logs:', error);
+    logger.error('Error fetching logs', {
+      type: 'logs',
+      action: 'fetch',
+      userId: req.user.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch logs',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 }
@@ -77,26 +86,30 @@ export async function getLogStats(req, res) {
         id: checkResults.id,
         status: checkResults.status,
         latency: checkResults.latency,
-        checkedAt: checkResults.checkedAt
+        checkedAt: checkResults.checkedAt,
       })
       .from(checkResults)
       .innerJoin(monitors, eq(checkResults.monitorId, monitors.id))
-      .where(and(
-        eq(monitors.userId, userId),
-        gte(checkResults.checkedAt, since)
-      ));
+      .where(
+        and(eq(monitors.userId, userId), gte(checkResults.checkedAt, since)),
+      );
 
     const totalChecks = recentLogs.length;
-    const successfulChecks = recentLogs.filter(log => log.status === 'success').length;
-    const failedChecks = recentLogs.filter(log => log.status === 'failure').length;
+    const successfulChecks = recentLogs.filter(
+      (log) => log.status === 'success',
+    ).length;
+    const failedChecks = recentLogs.filter(
+      (log) => log.status === 'failure',
+    ).length;
 
     const latencies = recentLogs
-      .filter(log => log.status === 'success' && log.latency)
-      .map(log => log.latency);
+      .filter((log) => log.status === 'success' && log.latency)
+      .map((log) => log.latency);
 
-    const avgLatency = latencies.length > 0
-      ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
-      : 0;
+    const avgLatency =
+      latencies.length > 0
+        ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+        : 0;
 
     res.json({
       success: true,
@@ -105,17 +118,26 @@ export async function getLogStats(req, res) {
         totalChecks,
         successfulChecks,
         failedChecks,
-        successRate: totalChecks > 0
-          ? ((successfulChecks / totalChecks) * 100).toFixed(2)
-          : 0,
-        avgLatency
-      }
+        successRate:
+          totalChecks > 0
+            ? ((successfulChecks / totalChecks) * 100).toFixed(2)
+            : 0,
+        avgLatency,
+      },
     });
   } catch (error) {
-    console.error('Error fetching log stats:', error);
+    logger.error('Error fetching log stats', {
+      type: 'logs',
+      action: 'fetch_stats',
+      userId: req.user.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch log statistics'
+      message: 'Failed to fetch log statistics',
     });
   }
 }

@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: MonitorHealth Backend API
   description: REST API for monitoring website health and uptime
@@ -12,7 +12,7 @@ servers:
 
 components:
   securitySchemes:
-    BearerAuth:
+    bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
@@ -69,7 +69,7 @@ components:
           items:
             type: string
             format: email
-          example: ["alerts@example.com"]
+          example: ['alerts@example.com']
         enabled:
           type: boolean
           default: true
@@ -174,24 +174,24 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
 
     NotFoundError:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
 
     ValidationError:
       description: Request validation failed
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
 
 security:
-  - BearerAuth: []
+  - bearerAuth: []
 
 paths:
   /auth/signup:
@@ -223,7 +223,7 @@ paths:
                   format: password
                   example: SecurePass123!
       responses:
-        "201":
+        '201':
           description: User successfully registered
           headers:
             Set-Cookie:
@@ -243,9 +243,9 @@ paths:
                   accessToken:
                     type: string
                   user:
-                    $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/ValidationError"
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
   /auth/login:
     post:
@@ -270,7 +270,7 @@ paths:
                   type: string
                   format: password
       responses:
-        "200":
+        '200':
           description: Login successful
           headers:
             Set-Cookie:
@@ -288,13 +288,13 @@ paths:
                   accessToken:
                     type: string
                   user:
-                    $ref: "#/components/schemas/User"
-        "401":
+                    $ref: '#/components/schemas/User'
+        '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
 
   /auth/me:
     get:
@@ -302,7 +302,7 @@ paths:
       tags:
         - Authentication
       responses:
-        "200":
+        '200':
           description: Current user information
           content:
             application/json:
@@ -313,9 +313,9 @@ paths:
                     type: boolean
                     example: true
                   user:
-                    $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /auth/refresh:
     post:
@@ -330,7 +330,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Token refreshed successfully
           content:
             application/json:
@@ -343,13 +343,13 @@ paths:
                   accessToken:
                     type: string
                   user:
-                    $ref: "#/components/schemas/User"
-        "401":
+                    $ref: '#/components/schemas/User'
+        '401':
           description: Invalid or expired refresh token
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
 
   /auth/logout:
     post:
@@ -357,7 +357,7 @@ paths:
       tags:
         - Authentication
       responses:
-        "200":
+        '200':
           description: Logout successful
           headers:
             Set-Cookie:
@@ -367,9 +367,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Success"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /monitors:
     get:
@@ -377,7 +377,7 @@ paths:
       tags:
         - Monitors
       responses:
-        "200":
+        '200':
           description: List of monitors with uptime stats
           content:
             application/json:
@@ -390,9 +390,9 @@ paths:
                   monitors:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Monitor"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                      $ref: '#/components/schemas/Monitor'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
     post:
       summary: Create a new monitor
@@ -435,7 +435,7 @@ paths:
                   type: boolean
                   default: true
       responses:
-        "201":
+        '201':
           description: Monitor created successfully
           content:
             application/json:
@@ -446,13 +446,13 @@ paths:
                     type: boolean
                     example: true
                   monitor:
-                    $ref: "#/components/schemas/Monitor"
+                    $ref: '#/components/schemas/Monitor'
                   message:
                     type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /monitors/{id}:
     get:
@@ -466,7 +466,7 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
+        '200':
           description: Monitor details
           content:
             application/json:
@@ -477,11 +477,11 @@ paths:
                     type: boolean
                     example: true
                   monitor:
-                    $ref: "#/components/schemas/Monitor"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+                    $ref: '#/components/schemas/Monitor'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
     put:
       summary: Update a monitor
@@ -522,7 +522,7 @@ paths:
                 enabled:
                   type: boolean
       responses:
-        "200":
+        '200':
           description: Monitor updated successfully
           content:
             application/json:
@@ -533,15 +533,15 @@ paths:
                     type: boolean
                     example: true
                   monitor:
-                    $ref: "#/components/schemas/Monitor"
+                    $ref: '#/components/schemas/Monitor'
                   message:
                     type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
     delete:
       summary: Delete a monitor
@@ -554,16 +554,16 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
+        '200':
           description: Monitor deleted successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Success"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /monitors/{id}/check:
     post:
@@ -577,7 +577,7 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
+        '200':
           description: Check performed successfully
           content:
             application/json:
@@ -588,13 +588,13 @@ paths:
                     type: boolean
                     example: true
                   checkResult:
-                    $ref: "#/components/schemas/Check"
+                    $ref: '#/components/schemas/Check'
                   message:
                     type: string
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /checks/{monitorId}:
     get:
@@ -618,7 +618,7 @@ paths:
             type: integer
             default: 0
       responses:
-        "200":
+        '200':
           description: Check history with pagination
           content:
             application/json:
@@ -631,13 +631,13 @@ paths:
                   checks:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Check"
+                      $ref: '#/components/schemas/Check'
                   pagination:
-                    $ref: "#/components/schemas/Pagination"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /checks/{monitorId}/stats:
     get:
@@ -657,7 +657,7 @@ paths:
             default: 24
           description: Number of hours to aggregate stats for
       responses:
-        "200":
+        '200':
           description: Statistics for the specified time period
           content:
             application/json:
@@ -681,10 +681,10 @@ paths:
                       totalChecks:
                         type: integer
                         example: 288
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /checks/{monitorId}/chart:
     get:
@@ -704,7 +704,7 @@ paths:
             default: 24
           description: Number of hours of data to return
       responses:
-        "200":
+        '200':
           description: Chronological check data for visualization
           content:
             application/json:
@@ -726,10 +726,10 @@ paths:
                           type: string
                         responseTime:
                           type: integer
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /logs:
     get:
@@ -748,7 +748,7 @@ paths:
             type: integer
             default: 0
       responses:
-        "200":
+        '200':
           description: List of logs with pagination
           content:
             application/json:
@@ -761,11 +761,11 @@ paths:
                   logs:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Log"
+                      $ref: '#/components/schemas/Log'
                   pagination:
-                    $ref: "#/components/schemas/Pagination"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /logs/stats:
     get:
@@ -780,7 +780,7 @@ paths:
             default: 24
           description: Number of hours to aggregate stats for
       responses:
-        "200":
+        '200':
           description: Recent check statistics
           content:
             application/json:
@@ -801,38 +801,8 @@ paths:
                       averageLatency:
                         type: number
                         format: float
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
-
-  /settings/test-email:
-    post:
-      summary: Send a test email
-      tags:
-        - Settings
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-              properties:
-                email:
-                  type: string
-                  format: email
-                  example: test@example.com
-      responses:
-        "200":
-          description: Test email sent successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Success"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /settings:
     get:
@@ -840,7 +810,7 @@ paths:
       tags:
         - Settings
       responses:
-        "200":
+        '200':
           description: All stored settings
           content:
             application/json:
@@ -853,8 +823,8 @@ paths:
                   settings:
                     type: object
                     additionalProperties: true
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /settings/{key}:
     get:
@@ -868,7 +838,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Setting value or null if not found
           content:
             application/json:
@@ -879,9 +849,9 @@ paths:
                     type: boolean
                     example: true
                   setting:
-                    $ref: "#/components/schemas/Setting"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                    $ref: '#/components/schemas/Setting'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
     put:
       summary: Update a setting
@@ -907,7 +877,7 @@ paths:
                 description:
                   type: string
       responses:
-        "200":
+        '200':
           description: Setting updated successfully
           content:
             application/json:
@@ -918,17 +888,17 @@ paths:
                     type: boolean
                     example: true
                   setting:
-                    $ref: "#/components/schemas/Setting"
+                    $ref: '#/components/schemas/Setting'
                   message:
                     type: string
-        "400":
+        '400':
           description: Validation error (smtp key cannot be updated via API)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          $ref: "#/components/responses/UnauthorizedError"
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
 tags:
   - name: Authentication

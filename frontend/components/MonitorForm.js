@@ -1,47 +1,62 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLoading }) {
+export default function MonitorForm({
+  initialData = {},
+  onSubmit,
+  onCancel,
+  isLoading,
+}) {
   const [formData, setFormData] = useState({
-    name: initialData.name || '',
-    url: initialData.url || '',
-    authType: initialData.authType || 'none',
+    name: initialData.name || "",
+    url: initialData.url || "",
+    authType: initialData.authType || "none",
     authConfig: initialData.authConfig || {},
-    validationRules: initialData.validationRules || { statusCode: 200, requiredKeys: [] },
+    validationRules: initialData.validationRules || {
+      statusCode: 200,
+      requiredKeys: [],
+    },
     checkInterval: initialData.checkInterval || 30,
-    alertEmails: initialData.alertEmails?.join(', ') || '',
-    enabled: initialData.enabled !== undefined ? initialData.enabled : true
+    alertEmails: initialData.alertEmails?.join(", ") || "",
+    enabled: initialData.enabled !== undefined ? initialData.enabled : true,
   });
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAuthConfigChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      authConfig: { ...prev.authConfig, [field]: value }
+      authConfig: { ...prev.authConfig, [field]: value },
     }));
   };
 
   const handleValidationChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      validationRules: { ...prev.validationRules, [field]: value }
+      validationRules: { ...prev.validationRules, [field]: value },
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const submitData = {
       ...formData,
-      alertEmails: formData.alertEmails.split(',').map(e => e.trim()).filter(e => e),
+      alertEmails: formData.alertEmails
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e),
       validationRules: {
         ...formData.validationRules,
-        requiredKeys: typeof formData.validationRules.requiredKeys === 'string'
-          ? formData.validationRules.requiredKeys.split(',').map(k => k.trim()).filter(k => k)
-          : formData.validationRules.requiredKeys
-      }
+        requiredKeys:
+          typeof formData.validationRules.requiredKeys === "string"
+            ? formData.validationRules.requiredKeys
+                .split(",")
+                .map((k) => k.trim())
+                .filter((k) => k)
+            : formData.validationRules.requiredKeys,
+      },
     };
 
     onSubmit(submitData);
@@ -51,8 +66,10 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Info */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Basic Information
+        </h3>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -62,7 +79,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
               type="text"
               required
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => handleChange("name", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
               placeholder="My API Monitor"
             />
@@ -76,7 +93,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
               type="url"
               required
               value={formData.url}
-              onChange={(e) => handleChange('url', e.target.value)}
+              onChange={(e) => handleChange("url", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
               placeholder="https://api.example.com/health"
             />
@@ -92,7 +109,9 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
                 required
                 min="1"
                 value={formData.checkInterval}
-                onChange={(e) => handleChange('checkInterval', parseInt(e.target.value))}
+                onChange={(e) =>
+                  handleChange("checkInterval", parseInt(e.target.value))
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
@@ -103,7 +122,9 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
               </label>
               <select
                 value={formData.enabled}
-                onChange={(e) => handleChange('enabled', e.target.value === 'true')}
+                onChange={(e) =>
+                  handleChange("enabled", e.target.value === "true")
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="true">Enabled</option>
@@ -116,8 +137,10 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
 
       {/* Authentication */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Authentication</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Authentication
+        </h3>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -125,7 +148,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
             </label>
             <select
               value={formData.authType}
-              onChange={(e) => handleChange('authType', e.target.value)}
+              onChange={(e) => handleChange("authType", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="none">None</option>
@@ -135,41 +158,54 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
             </select>
           </div>
 
-          {formData.authType === 'basic' && (
+          {formData.authType === "basic" && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
                 <input
                   type="text"
-                  value={formData.authConfig.username || ''}
-                  onChange={(e) => handleAuthConfigChange('username', e.target.value)}
+                  value={formData.authConfig.username || ""}
+                  onChange={(e) =>
+                    handleAuthConfigChange("username", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
                 <input
                   type="password"
-                  value={formData.authConfig.password || ''}
-                  onChange={(e) => handleAuthConfigChange('password', e.target.value)}
+                  value={formData.authConfig.password || ""}
+                  onChange={(e) =>
+                    handleAuthConfigChange("password", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
             </>
           )}
 
-          {formData.authType === 'token' && (
+          {formData.authType === "token" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bearer Token
+              </label>
               <textarea
-                value={formData.authConfig.staticToken || ''}
-                onChange={(e) => handleAuthConfigChange('staticToken', e.target.value)}
+                value={formData.authConfig.staticToken || ""}
+                onChange={(e) =>
+                  handleAuthConfigChange("staticToken", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
                 placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 rows={3}
               />
               <p className="mt-1 text-sm text-gray-500">
-                Enter your Bearer token. The monitor will send: Authorization: Bearer &lt;your-token&gt;
+                Enter your Bearer token. The monitor will send: Authorization:
+                Bearer &lt;your-token&gt;
               </p>
             </div>
           )}
@@ -178,8 +214,10 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
 
       {/* Validation */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Validation Rules</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Validation Rules
+        </h3>
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -188,7 +226,9 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
             <input
               type="number"
               value={formData.validationRules.statusCode || 200}
-              onChange={(e) => handleValidationChange('statusCode', parseInt(e.target.value))}
+              onChange={(e) =>
+                handleValidationChange("statusCode", parseInt(e.target.value))
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
@@ -201,10 +241,12 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
               type="text"
               value={
                 Array.isArray(formData.validationRules.requiredKeys)
-                  ? formData.validationRules.requiredKeys.join(', ')
-                  : formData.validationRules.requiredKeys || ''
+                  ? formData.validationRules.requiredKeys.join(", ")
+                  : formData.validationRules.requiredKeys || ""
               }
-              onChange={(e) => handleValidationChange('requiredKeys', e.target.value)}
+              onChange={(e) =>
+                handleValidationChange("requiredKeys", e.target.value)
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="data, status, users"
             />
@@ -214,8 +256,10 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
 
       {/* Alerts */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Alert Configuration</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Alert Configuration
+        </h3>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Alert Email Addresses (comma-separated)
@@ -223,12 +267,13 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
           <input
             type="text"
             value={formData.alertEmails}
-            onChange={(e) => handleChange('alertEmails', e.target.value)}
+            onChange={(e) => handleChange("alertEmails", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
             placeholder="admin@example.com, ops@example.com"
           />
           <p className="mt-1 text-sm text-gray-500">
-            Emails will be sent when monitor status changes (up → down or down → up). Leave blank to use the default alert email from Settings.
+            Emails will be sent when monitor status changes (up → down or down →
+            up). Leave blank to use the default alert email from Settings.
           </p>
         </div>
       </div>
@@ -249,7 +294,7 @@ export default function MonitorForm({ initialData = {}, onSubmit, onCancel, isLo
           disabled={isLoading}
           className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
         >
-          {isLoading ? 'Saving...' : 'Save Monitor'}
+          {isLoading ? "Saving..." : "Save Monitor"}
         </button>
       </div>
     </form>

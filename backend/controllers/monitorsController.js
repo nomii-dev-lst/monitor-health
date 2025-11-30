@@ -1,5 +1,6 @@
 import { MonitorRepository } from '../repositories/index.js';
 import SchedulerService from '../services/schedulerService.js';
+import logger from '../utils/logger.js';
 
 export async function getMonitors(req, res) {
   try {
@@ -17,7 +18,15 @@ export async function getMonitors(req, res) {
       monitors: monitorsWithStats,
     });
   } catch (error) {
-    console.error('Error fetching monitors:', error);
+    logger.error('Error fetching monitors', {
+      type: 'monitor',
+      action: 'fetch_all',
+      userId: req.user.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch monitors',
@@ -52,12 +61,17 @@ export async function getMonitorById(req, res) {
       });
     }
 
-    console.log('Monitor fetched:', {
-      id: monitor.id,
-      name: monitor.name,
-      url: monitor.url,
-      urlType: typeof monitor.url,
-      urlLength: monitor.url ? monitor.url.length : 0,
+    logger.debug('Monitor fetched', {
+      type: 'monitor',
+      action: 'fetch_single',
+      userId: req.user.id,
+      monitor: {
+        id: monitor.id,
+        name: monitor.name,
+        url: monitor.url,
+        type: monitor.type,
+        enabled: monitor.enabled,
+      },
     });
 
     res.json({
@@ -65,7 +79,16 @@ export async function getMonitorById(req, res) {
       monitor,
     });
   } catch (error) {
-    console.error('Error fetching monitor:', error);
+    logger.error('Error fetching monitor', {
+      type: 'monitor',
+      action: 'fetch_single',
+      userId: req.user.id,
+      monitorId: req.params.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch monitor',
@@ -117,7 +140,16 @@ export async function createMonitor(req, res) {
       message: 'Monitor created successfully',
     });
   } catch (error) {
-    console.error('Error creating monitor:', error);
+    logger.error('Error creating monitor', {
+      type: 'monitor',
+      action: 'create',
+      userId: req.user.id,
+      monitorData: req.body,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to create monitor',
@@ -210,7 +242,16 @@ export async function updateMonitor(req, res) {
       message: 'Monitor updated successfully',
     });
   } catch (error) {
-    console.error('Error updating monitor:', error);
+    logger.error('Error updating monitor', {
+      type: 'monitor',
+      action: 'update',
+      userId: req.user.id,
+      monitorId: req.params.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to update monitor',
@@ -251,7 +292,16 @@ export async function deleteMonitor(req, res) {
       message: 'Monitor deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting monitor:', error);
+    logger.error('Error deleting monitor', {
+      type: 'monitor',
+      action: 'delete',
+      userId: req.user.id,
+      monitorId: req.params.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to delete monitor',
@@ -294,7 +344,16 @@ export async function triggerMonitorCheck(req, res) {
       message: 'Check executed successfully',
     });
   } catch (error) {
-    console.error('Error executing check:', error);
+    logger.error('Error executing manual check', {
+      type: 'monitor',
+      action: 'manual_check',
+      userId: req.user.id,
+      monitorId: req.params.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to execute check',

@@ -11,6 +11,7 @@ import EmailService from './emailService.js';
 import sseService from './sseService.js';
 import { ResponseValidator } from '../utils/validator.js';
 import logger from '../utils/logger.js';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Core monitoring service
@@ -39,15 +40,32 @@ export class MonitorService {
       monitor = monitorId;
     }
 
-    logger.info(
-      `Executing check for monitor: ${monitor.name} (ID: ${monitor.id})`,
-    );
+    const correlationId = uuidv4();
 
-    logger.info(`Monitor URL: "${monitor.url || '(undefined)'}"`);
+    logger.info('Monitor check started', {
+      type: 'monitor',
+      correlationId,
+      monitor: {
+        id: monitor.id,
+        name: monitor.name,
+        type: monitor.type,
+      },
+    });
 
     // Early validation - check if URL exists
     if (!monitor.url || monitor.url.trim() === '') {
-      logger.error(`Monitor "${monitor.name}" has no URL configured!`);
+      logger.error('Monitor URL validation failed', {
+        type: 'monitor',
+        correlationId,
+        monitor: {
+          id: monitor.id,
+          name: monitor.name,
+        },
+        error: {
+          message: 'Monitor URL is not configured',
+          code: 'MISSING_URL',
+        },
+      });
       throw new Error(
         'Monitor URL is not configured. Please edit the monitor and add a valid URL.',
       );
@@ -112,9 +130,14 @@ export class MonitorService {
         responseSize: responseStr.length,
       };
 
-      logger.info(
-        `Response received: HTTP ${response.status}, ${response.data ? typeof response.data : 'null'} type, ${responseStr.length} chars`,
-      );
+      // Log response receipt (omit sensitive data)
+      logger.info('Response received', {
+        type: 'monitor',
+        correlationId,
+        monitorId: monitor.id,
+        statusCode: response.status,
+        latencyMs: endTime - startTime,
+      });
 
       // Step 3: Validate response
       const validation = ResponseValidator.validate(
@@ -497,7 +520,6 @@ export class MonitorService {
       logger.error('Failed to calculate and emit stats:', error);
     }
   }
-
 }
 
 export default MonitorService;

@@ -1,51 +1,32 @@
 import { SettingsRepository } from '../repositories/index.js';
-import EmailService from '../services/emailService.js';
-
-export async function sendTestEmail(req, res) {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email address is required'
-      });
-    }
-
-    await EmailService.sendTestEmail(email);
-
-    res.json({
-      success: true,
-      message: 'Test email sent successfully'
-    });
-  } catch (error) {
-    console.error('Error sending test email:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send test email',
-      error: error.message
-    });
-  }
-}
+import logger from '../utils/logger.js';
 
 export async function getAllSettings(req, res) {
   try {
     const settings = await SettingsRepository.findAll();
 
     const settingsObj = {};
-    settings.forEach(setting => {
+    settings.forEach((setting) => {
       settingsObj[setting.key] = setting.value;
     });
 
     res.json({
       success: true,
-      settings: settingsObj
+      settings: settingsObj,
     });
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    logger.error('Error fetching settings', {
+      type: 'settings',
+      action: 'fetch_all',
+      userId: req.user.id,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch settings'
+      message: 'Failed to fetch settings',
     });
   }
 }
@@ -57,13 +38,22 @@ export async function getSettingByKey(req, res) {
 
     res.json({
       success: true,
-      setting: setting || null
+      setting: setting || null,
     });
   } catch (error) {
-    console.error('Error fetching setting:', error);
+    logger.error('Error fetching setting', {
+      type: 'settings',
+      action: 'fetch_single',
+      userId: req.user.id,
+      settingKey: req.params.key,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch setting'
+      message: 'Failed to fetch setting',
     });
   }
 }
@@ -76,7 +66,7 @@ export async function updateSetting(req, res) {
     if (value === undefined) {
       return res.status(400).json({
         success: false,
-        message: 'Value is required'
+        message: 'Value is required',
       });
     }
 
@@ -84,22 +74,35 @@ export async function updateSetting(req, res) {
     if (key === 'smtp') {
       return res.status(400).json({
         success: false,
-        message: 'SMTP settings must be configured via backend .env file'
+        message: 'SMTP settings must be configured via backend .env file',
       });
     }
 
-    const setting = await SettingsRepository.upsert(key, value, description || '');
+    const setting = await SettingsRepository.upsert(
+      key,
+      value,
+      description || '',
+    );
 
     res.json({
       success: true,
       setting,
-      message: 'Setting updated successfully'
+      message: 'Setting updated successfully',
     });
   } catch (error) {
-    console.error('Error updating setting:', error);
+    logger.error('Error updating setting', {
+      type: 'settings',
+      action: 'update',
+      userId: req.user.id,
+      settingKey: req.params.key,
+      error: {
+        name: error.name,
+        message: error.message,
+      },
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to update setting'
+      message: 'Failed to update setting',
     });
   }
 }

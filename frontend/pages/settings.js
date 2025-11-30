@@ -1,17 +1,15 @@
-import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
-import Loading from '../components/Loading';
-import { settingsAPI } from '../lib/api';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from "react";
+import Layout from "../components/Layout";
+import Loading from "../components/Loading";
+import { settingsAPI } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Settings() {
   const { loading: authLoading, isAuthenticated } = useAuth();
-  const [defaultAlertEmail, setDefaultAlertEmail] = useState('');
+  const [defaultAlertEmail, setDefaultAlertEmail] = useState("");
   const [sendRecoveryAlerts, setSendRecoveryAlerts] = useState(true);
-  const [testEmail, setTestEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   // Wait for authentication to complete before loading settings
   useEffect(() => {
@@ -23,75 +21,58 @@ export default function Settings() {
   const loadSettings = async () => {
     try {
       // Load default alert email
-      const alertResponse = await settingsAPI.get('defaultAlertEmail');
+      const alertResponse = await settingsAPI.get("defaultAlertEmail");
       if (alertResponse.success && alertResponse.setting?.value) {
         setDefaultAlertEmail(alertResponse.setting.value);
       }
 
       // Load recovery alerts setting
-      const recoveryResponse = await settingsAPI.get('sendRecoveryAlerts');
-      if (recoveryResponse.success && recoveryResponse.setting?.value !== undefined) {
+      const recoveryResponse = await settingsAPI.get("sendRecoveryAlerts");
+      if (
+        recoveryResponse.success &&
+        recoveryResponse.setting?.value !== undefined
+      ) {
         setSendRecoveryAlerts(recoveryResponse.setting.value);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
-      setMessage({ type: 'error', text: 'Failed to load settings' });
+      console.error("Failed to load settings:", error);
+      setMessage({ type: "error", text: "Failed to load settings" });
     }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage({ type: '', text: '' });
+    setMessage({ type: "", text: "" });
 
     try {
       // Save default alert email
       if (defaultAlertEmail) {
-        await settingsAPI.update('defaultAlertEmail', defaultAlertEmail, 'Default email for alert notifications');
+        await settingsAPI.update(
+          "defaultAlertEmail",
+          defaultAlertEmail,
+          "Default email for alert notifications"
+        );
       }
 
       // Save recovery alerts setting
-      await settingsAPI.update('sendRecoveryAlerts', sendRecoveryAlerts, 'Send recovery alert emails');
-      
-      setMessage({ type: 'success', text: 'Alert settings saved successfully!' });
+      await settingsAPI.update(
+        "sendRecoveryAlerts",
+        sendRecoveryAlerts,
+        "Send recovery alert emails"
+      );
+
+      setMessage({
+        type: "success",
+        text: "Alert settings saved successfully!",
+      });
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save settings' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTestEmail = async (e) => {
-    e.preventDefault();
-    
-    const emailToTest = testEmail || defaultAlertEmail;
-    
-    if (!emailToTest) {
-      setMessage({ type: 'error', text: 'Please enter an email address or set a default alert email' });
-      return;
-    }
-
-    setIsTesting(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await settingsAPI.testEmail(emailToTest);
-      
-      if (response.success) {
-        setMessage({ 
-          type: 'success', 
-          text: `Test email sent successfully to ${emailToTest}! Check your inbox (and spam folder).` 
-        });
-      } else {
-        setMessage({ type: 'error', text: 'Failed to send test email' });
-      }
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || error.response?.data?.error || 'Failed to send test email. Please check backend .env SMTP configuration.' 
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to save settings",
       });
     } finally {
-      setIsTesting(false);
+      setIsLoading(false);
     }
   };
 
@@ -106,17 +87,24 @@ export default function Settings() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Alert Settings</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Configure email alert preferences. SMTP is configured via backend .env file.
+            Configure email alert preferences. SMTP is configured via backend
+            .env file.
           </p>
         </div>
 
         {message.text && (
-          <div className={`rounded-md p-4 ${
-            message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}>
-            <div className={`text-sm ${
-              message.type === 'success' ? 'text-green-800' : 'text-red-800'
-            }`}>
+          <div
+            className={`rounded-md p-4 ${
+              message.type === "success"
+                ? "bg-green-50 border border-green-200"
+                : "bg-red-50 border border-red-200"
+            }`}
+          >
+            <div
+              className={`text-sm ${
+                message.type === "success" ? "text-green-800" : "text-red-800"
+              }`}
+            >
               {message.text}
             </div>
           </div>
@@ -125,8 +113,10 @@ export default function Settings() {
         <form onSubmit={handleSave} className="space-y-6">
           {/* Alert Settings */}
           <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Alert Settings</h2>
-            
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Alert Settings
+            </h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -140,7 +130,8 @@ export default function Settings() {
                   placeholder="alerts@example.com"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  This email will receive alerts from all monitors (unless individual monitors specify different recipients)
+                  This email will receive alerts from all monitors (unless
+                  individual monitors specify different recipients)
                 </p>
               </div>
 
@@ -157,7 +148,8 @@ export default function Settings() {
                   </span>
                 </label>
                 <p className="mt-1 ml-6 text-xs text-gray-500">
-                  If disabled, you'll only receive alerts when monitors fail (recommended to reduce email noise)
+                  If disabled, you'll only receive alerts when monitors fail
+                  (recommended to reduce email noise)
                 </p>
               </div>
             </div>
@@ -169,46 +161,10 @@ export default function Settings() {
               disabled={isLoading}
               className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Saving...' : 'Save Alert Settings'}
+              {isLoading ? "Saving..." : "Save Alert Settings"}
             </button>
           </div>
         </form>
-
-        {/* Test Email */}
-        <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Test Email Configuration</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Send a test email to verify your SMTP configuration is working correctly
-          </p>
-          
-          <form onSubmit={handleTestEmail} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Send test email to:
-              </label>
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                placeholder={defaultAlertEmail || "test@example.com"}
-              />
-              {defaultAlertEmail && !testEmail && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Leave empty to use default alert email ({defaultAlertEmail})
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isTesting}
-              className="px-6 py-2 text-sm font-medium text-white bg-gray-700 rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isTesting ? 'Sending...' : 'Send Test Email'}
-            </button>
-          </form>
-        </div>
       </div>
     </Layout>
   );

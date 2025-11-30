@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // In-memory access token storage
 let accessToken = null;
@@ -8,17 +8,21 @@ let accessToken = null;
 // Token management
 export const tokenManager = {
   getAccessToken: () => accessToken,
-  setAccessToken: (token) => { accessToken = token; },
-  clearAccessToken: () => { accessToken = null; }
+  setAccessToken: (token) => {
+    accessToken = token;
+  },
+  clearAccessToken: () => {
+    accessToken = null;
+  },
 };
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
-  withCredentials: true // Enable sending cookies
+  withCredentials: true, // Enable sending cookies
 });
 
 // Add access token to requests
@@ -34,7 +38,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -50,8 +54,12 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Skip interceptor for auth endpoints - these handle their own errors
-    const skipRefreshFor = ['/api/auth/refresh', '/api/auth/login', '/api/auth/signup'];
-    if (skipRefreshFor.some(path => originalRequest.url?.includes(path))) {
+    const skipRefreshFor = [
+      "/api/auth/refresh",
+      "/api/auth/login",
+      "/api/auth/signup",
+    ];
+    if (skipRefreshFor.some((path) => originalRequest.url?.includes(path))) {
       return Promise.reject(error);
     }
 
@@ -61,12 +69,14 @@ api.interceptors.response.use(
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
@@ -90,8 +100,8 @@ api.interceptors.response.use(
         // Refresh failed, clear token and redirect to login
         processQueue(refreshError, null);
         accessToken = null;
-        if (typeof window !== 'undefined') {
-          window.location.href = '/';
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
         }
         return Promise.reject(refreshError);
       } finally {
@@ -106,146 +116,152 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   signup: async (username, email, password) => {
-    const response = await api.post('/api/auth/signup', { username, email, password });
-    if (response.data.success && response.data.accessToken) {
-      accessToken = response.data.accessToken;
-    }
-    return response.data;
-  },
-  
-  login: async (username, password) => {
-    const response = await api.post('/api/auth/login', { username, password });
-    if (response.data.success && response.data.accessToken) {
-      accessToken = response.data.accessToken;
-    }
-    return response.data;
-  },
-  
-  logout: async () => {
-    const response = await api.post('/api/auth/logout');
-    accessToken = null;
-    return response.data;
-  },
-  
-  refresh: async () => {
-    const response = await api.post('/api/auth/refresh', {}, {
-      _skipAuthRefresh: true  // Mark to skip interceptor
+    const response = await api.post("/api/auth/signup", {
+      username,
+      email,
+      password,
     });
     if (response.data.success && response.data.accessToken) {
       accessToken = response.data.accessToken;
     }
     return response.data;
   },
-  
-  getMe: async () => {
-    const response = await api.get('/api/auth/me');
+
+  login: async (username, password) => {
+    const response = await api.post("/api/auth/login", { username, password });
+    if (response.data.success && response.data.accessToken) {
+      accessToken = response.data.accessToken;
+    }
     return response.data;
-  }
+  },
+
+  logout: async () => {
+    const response = await api.post("/api/auth/logout");
+    accessToken = null;
+    return response.data;
+  },
+
+  refresh: async () => {
+    const response = await api.post(
+      "/api/auth/refresh",
+      {},
+      {
+        _skipAuthRefresh: true, // Mark to skip interceptor
+      }
+    );
+    if (response.data.success && response.data.accessToken) {
+      accessToken = response.data.accessToken;
+    }
+    return response.data;
+  },
+
+  getMe: async () => {
+    const response = await api.get("/api/auth/me");
+    return response.data;
+  },
 };
 
 // Monitors API
 export const monitorsAPI = {
   getAll: async () => {
-    const response = await api.get('/api/monitors');
+    const response = await api.get("/api/monitors");
     return response.data;
   },
-  
+
   getById: async (id) => {
     const response = await api.get(`/api/monitors/${id}`);
     return response.data;
   },
-  
+
   create: async (data) => {
-    const response = await api.post('/api/monitors', data);
+    const response = await api.post("/api/monitors", data);
     return response.data;
   },
-  
+
   update: async (id, data) => {
     const response = await api.put(`/api/monitors/${id}`, data);
     return response.data;
   },
-  
+
   delete: async (id) => {
     const response = await api.delete(`/api/monitors/${id}`);
     return response.data;
   },
-  
+
   triggerCheck: async (id) => {
     const response = await api.post(`/api/monitors/${id}/check`);
     return response.data;
-  }
+  },
 };
 
 // Checks API
 export const checksAPI = {
   getHistory: async (monitorId, limit = 50, offset = 0) => {
     const response = await api.get(`/api/checks/${monitorId}`, {
-      params: { limit, offset }
+      params: { limit, offset },
     });
     return response.data;
   },
-  
+
   getStats: async (monitorId, hours = 24) => {
     const response = await api.get(`/api/checks/${monitorId}/stats`, {
-      params: { hours }
+      params: { hours },
     });
     return response.data;
   },
-  
+
   getChartData: async (monitorId, hours = 24) => {
     const response = await api.get(`/api/checks/${monitorId}/chart`, {
-      params: { hours }
+      params: { hours },
     });
     return response.data;
-  }
+  },
 };
 
 // Settings API
 export const settingsAPI = {
   getAll: async () => {
-    const response = await api.get('/api/settings');
+    const response = await api.get("/api/settings");
     return response.data;
   },
-  
+
   get: async (key) => {
     const response = await api.get(`/api/settings/${key}`);
     return response.data;
   },
-  
-  update: async (key, value, description = '') => {
-    const response = await api.put(`/api/settings/${key}`, { value, description });
+
+  update: async (key, value, description = "") => {
+    const response = await api.put(`/api/settings/${key}`, {
+      value,
+      description,
+    });
     return response.data;
   },
-  
-  testEmail: async (email) => {
-    const response = await api.post('/api/settings/test-email', { email });
-    return response.data;
-  }
 };
 
 // Dashboard API
 export const dashboardAPI = {
   getSummary: async () => {
-    const response = await api.get('/api/dashboard/summary');
+    const response = await api.get("/api/dashboard/summary");
     return response.data;
-  }
+  },
 };
 
 // Logs API
 export const logsAPI = {
   getAll: async (limit = 100, offset = 0) => {
-    const response = await api.get('/api/logs', {
-      params: { limit, offset }
+    const response = await api.get("/api/logs", {
+      params: { limit, offset },
     });
     return response.data;
   },
-  
+
   getStats: async (hours = 24) => {
-    const response = await api.get('/api/logs/stats', {
-      params: { hours }
+    const response = await api.get("/api/logs/stats", {
+      params: { hours },
     });
     return response.data;
-  }
+  },
 };
 
 export default api;

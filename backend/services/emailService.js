@@ -29,7 +29,10 @@ class EmailService {
    */
   async initializeTransporter() {
     try {
-      logger.info('Initializing email service...');
+      logger.info('Initializing email service', {
+        type: 'email',
+        action: 'initialize',
+      });
 
       // Load configuration from environment variables only
       if (
@@ -38,17 +41,28 @@ class EmailService {
         !process.env.SMTP_USER ||
         !process.env.SMTP_PASS
       ) {
-        logger.warn(
-          'SMTP not configured in .env file. Email alerts are disabled.',
-        );
-        logger.info(
-          'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in backend .env file.',
-        );
+        logger.warn('SMTP configuration missing', {
+          type: 'email',
+          action: 'initialize',
+          error: {
+            message:
+              'SMTP not configured in .env file. Email alerts are disabled.',
+            code: 'SMTP_NOT_CONFIGURED',
+          },
+        });
+        logger.info('SMTP configuration required', {
+          type: 'email',
+          message:
+            'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in backend .env file.',
+        });
         this.isConfigured = false;
         return false;
       }
 
-      logger.info('Using SMTP configuration from environment variables');
+      logger.info('Using SMTP configuration from environment variables', {
+        type: 'email',
+        action: 'configure',
+      });
       const config = {
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT),
@@ -80,7 +94,9 @@ class EmailService {
       logger.info(
         `Configuring SMTP: ${config.host}:${config.port} (secure: ${config.secure})`,
       );
-      logger.info(`SMTP User: ${config.auth.user}`);
+      logger.info(
+        `SMTP User: ${config.auth.user.replace(/^(.{2})(.*)(@.*)$/, '$1***$3')}`,
+      );
       logger.info(`From Address: ${config.from}`);
 
       // Create transporter with configuration
@@ -108,16 +124,40 @@ class EmailService {
 
       // Verify SMTP connection
       try {
-        logger.info('Verifying SMTP connection...');
+        logger.info('Verifying SMTP connection', {
+          type: 'email',
+          action: 'verify',
+          smtp: {
+            host: config.host,
+            port: config.port,
+            secure: config.secure,
+          },
+        });
         await this.transporter.verify();
-        logger.info('✅ Email service initialized successfully');
-        logger.info(`📧 SMTP Host: ${config.host}:${config.port}`);
-        logger.info(`📤 From Address: ${this.fromAddress}`);
+        logger.info('Email service initialized successfully', {
+          type: 'email',
+          action: 'initialize',
+          status: 'success',
+          smtp: {
+            host: config.host,
+            port: config.port,
+            secure: config.secure,
+            fromAddress: this.fromAddress,
+          },
+        });
         this.isConfigured = true;
         this.lastError = null;
         return true;
       } catch (verifyError) {
-        logger.error('❌ SMTP verification failed:', verifyError.message);
+        logger.error('SMTP verification failed', {
+          type: 'email',
+          action: 'verify',
+          error: {
+            name: verifyError.name,
+            message: verifyError.message,
+            code: verifyError.code,
+          },
+        });
 
         // Provide helpful error messages
         if (
@@ -259,84 +299,6 @@ class EmailService {
       );
       throw error;
     }
-  }
-
-  /**
-   * Send test email to verify SMTP configuration
-   * @param {string} testEmail - Email address to send test to
-   * @returns {Promise<boolean>}
-   */
-  async sendTestEmail(testEmail) {
-    if (!this.transporter) {
-      await this.initializeTransporter();
-    }
-
-    if (!this.isReady()) {
-      throw new Error(
-        'Email service is not configured. Please configure SMTP settings first.',
-      );
-    }
-
-    const subject = '✅ MonitorHealth - SMTP Test Successful';
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #10b981; color: white; padding: 20px; border-radius: 5px; text-align: center; }
-          .content { background: #f9fafb; padding: 20px; border-radius: 5px; margin-top: 20px; }
-          .success { color: #10b981; font-size: 48px; text-align: center; }
-          .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 SMTP Configuration Test</h1>
-          </div>
-          <div class="content">
-            <div class="success">✅</div>
-            <h2 style="text-align: center;">Success!</h2>
-            <p>Your SMTP configuration is working correctly. MonitorHealth can now send email alerts.</p>
-            <p><strong>Configuration Details:</strong></p>
-            <ul>
-              <li>From Address: ${this.fromAddress}</li>
-              <li>Test Email: ${testEmail}</li>
-              <li>Timestamp: ${new Date().toLocaleString()}</li>
-            </ul>
-            <p>You will receive email alerts when your monitors fail.</p>
-          </div>
-          <div class="footer">
-            <p>This is an automated test email from MonitorHealth</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const textContent = `
-MonitorHealth - SMTP Test Successful
-
-✅ Your SMTP configuration is working correctly!
-
-Configuration Details:
-- From Address: ${this.fromAddress}
-- Test Email: ${testEmail}
-- Timestamp: ${new Date().toLocaleString()}
-
-You will receive email alerts when your monitors fail.
-
----
-This is an automated test email from MonitorHealth
-    `.trim();
-
-    await this._sendEmail([testEmail], subject, textContent, htmlContent);
-
-    logger.info(`✅ Test email sent successfully to: ${testEmail}`);
-    return true;
   }
 
   /**
@@ -654,9 +616,12 @@ This is an automated alert from MonitorHealth.
 
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info(
-        `📧 Email sent to ${recipients.join(', ')}: ${info.messageId}`,
-      );
+      logger.info('Email sent successfully', {
+        type: 'email',
+        action: 'sent',
+        messageId: info.messageId,
+        recipientCount: recipients.length,
+      });
       return info;
     } catch (error) {
       logger.error('Failed to send email:', error.message);

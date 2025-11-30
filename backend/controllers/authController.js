@@ -53,7 +53,12 @@ export async function signup(req, res) {
       role,
     });
 
-    logger.info(`User registered: ${username}`);
+    logger.info('User registered', {
+      type: 'auth',
+      action: 'signup',
+      userId: user.id,
+      role: user.role,
+    });
 
     // Generate tokens
     const accessToken = jwt.sign(
@@ -170,7 +175,15 @@ export async function login(req, res) {
       },
     });
   } catch (error) {
-    console.error('Unexpected login error:', error);
+    logger.error('Unexpected login error', {
+      type: 'auth',
+      action: 'login',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Authentication service error',
@@ -251,7 +264,15 @@ export async function refreshToken(req, res) {
     }
 
     // Only log unexpected errors
-    console.error('Unexpected refresh token error:', error);
+    logger.error('Unexpected refresh token error', {
+      type: 'auth',
+      action: 'refresh_token',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+    });
     res.status(500).json({
       success: false,
       message: 'Authentication service error',
@@ -280,3 +301,24 @@ export async function logout(req, res) {
     });
   }
 }
+
+// SSE connection error handling (for reference, not part of the original file)
+// export async function sseConnectionHandler(req, res) {
+//   const userId = req.user.id;
+
+//   try {
+//     // Your existing SSE connection logic
+//   } catch (error) {
+//     logger.error('SSE connection error', {
+//       type: 'sse',
+//       action: 'connection_error',
+//       userId: userId,
+//       errorCode: error.code || 'UNKNOWN',
+//       // Don't log full error.message - could contain sensitive data
+//     });
+//     res.status(500).json({
+//       success: false,
+//       message: 'SSE connection error',
+//     });
+//   }
+// }

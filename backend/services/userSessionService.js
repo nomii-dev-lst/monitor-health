@@ -14,6 +14,10 @@ export class UserSessionService {
    * Register a user login and start their monitors
    * @param {Number} userId - User ID
    */
+  /**
+   * Register a user login
+   * @param {Number} userId - User ID
+   */
   static async login(userId) {
     try {
       if (this.activeUsers.has(userId)) {
@@ -21,19 +25,18 @@ export class UserSessionService {
         return;
       }
 
-      // Add user to active sessions
+      // Add user to active sessions (for tracking and SSE notifications)
       this.activeUsers.add(userId);
       logger.info(`User ${userId} session started`);
 
-      // Initialize monitors for this user
-      await this.initializeUserMonitors(userId);
+      // Note: Monitors now run in background regardless of login status
     } catch (error) {
-      logger.error(`Failed to start monitors for user ${userId}:`, error);
+      logger.error(`Failed to register login for user ${userId}:`, error);
     }
   }
 
   /**
-   * Register a user logout and stop their monitors
+   * Register a user logout
    * @param {Number} userId - User ID
    */
   static async logout(userId) {
@@ -47,10 +50,9 @@ export class UserSessionService {
       this.activeUsers.delete(userId);
       logger.info(`User ${userId} session ended`);
 
-      // Clear nextCheckTime for user's monitors to stop them
-      await this.stopUserMonitors(userId);
+      // Note: Monitors continue running in background
     } catch (error) {
-      logger.error(`Failed to stop monitors for user ${userId}:`, error);
+      logger.error(`Failed to register logout for user ${userId}:`, error);
     }
   }
 
@@ -69,23 +71,35 @@ export class UserSessionService {
 
           if (monitor.lastCheckTime) {
             // If monitor was checked before, schedule based on last check
-            nextCheck.setTime(monitor.lastCheckTime.getTime() + monitor.checkInterval * 60 * 1000);
+            nextCheck.setTime(
+              monitor.lastCheckTime.getTime() +
+                monitor.checkInterval * 60 * 1000,
+            );
           } else {
             // If never checked, schedule for immediate check
             nextCheck.setMinutes(nextCheck.getMinutes() + 1);
           }
 
-          await MonitorRepository.updateById(monitor.id, { nextCheckTime: nextCheck });
+          await MonitorRepository.updateById(monitor.id, {
+            nextCheckTime: nextCheck,
+          });
 
-          logger.debug(`Monitor "${monitor.name}" scheduled for ${nextCheck.toISOString()}`);
+          logger.debug(
+            `Monitor "${monitor.name}" scheduled for ${nextCheck.toISOString()}`,
+          );
         }
       }
 
       if (monitors.length > 0) {
-        logger.info(`${monitors.length} monitor(s) activated for user ${userId}`);
+        logger.info(
+          `${monitors.length} monitor(s) activated for user ${userId}`,
+        );
       }
     } catch (error) {
-      logger.error(`Failed to initialize monitors for user ${userId}:`, error.message);
+      logger.error(
+        `Failed to initialize monitors for user ${userId}:`,
+        error.message,
+      );
     }
   }
 
@@ -104,7 +118,10 @@ export class UserSessionService {
 
       logger.info(`Stopped ${monitors.length} monitors for user ${userId}`);
     } catch (error) {
-      logger.error(`Failed to stop monitors for user ${userId}:`, error.message);
+      logger.error(
+        `Failed to stop monitors for user ${userId}:`,
+        error.message,
+      );
     }
   }
 
