@@ -2,54 +2,64 @@ import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import Loading from "../../components/Loading";
 import Link from "next/link";
-import { monitorsAPI } from "../../lib/api";
+import { monitorsAPI, collectionsAPI } from "../../lib/api";
 import { formatRelativeTime } from "../../lib/utils";
 import StatusBadge, { StatusIndicator } from "../../components/StatusBadge";
 import { useAuth } from "../../contexts/AuthContext";
 import { useDashboard } from "../../contexts/DashboardContext";
+import CollectionSection from "../../components/CollectionSection";
+import MonitorCard from "../../components/MonitorCard";
 
 export default function MonitorsList() {
   const { loading: authLoading, isAuthenticated } = useAuth();
-  const { monitors, loadMonitors, setMonitors } = useDashboard();
+  const { monitors, collections, loadMonitors, loadCollections, setMonitors } =
+    useDashboard();
   const [checkingMonitors, setCheckingMonitors] = useState(new Set());
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoadingMonitors, setIsLoadingMonitors] = useState(true);
+  const [showCreateCollection, setShowCreateCollection] = useState(false);
+  const [newCollectionData, setNewCollectionData] = useState({
+    name: "",
+    description: "",
+    color: "#3B82F6",
+  });
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      loadMonitors().finally(() => setIsLoadingMonitors(false));
+      Promise.all([loadMonitors(), loadCollections()]).finally(() =>
+        setIsLoadingMonitors(false)
+      );
     }
-  }, [authLoading, isAuthenticated, loadMonitors]);
+  }, [authLoading, isAuthenticated, loadMonitors, loadCollections]);
 
-  const handleDelete = async (id, name) => {
-    if (!confirm(`Are you sure you want to delete monitor "${name}"?`)) {
-      return;
-    }
-
+  const handleCreateCollection = async (e) => {
+    e.preventDefault();
     try {
-      await monitorsAPI.delete(id);
-      setMonitors(monitors.filter((m) => m.id !== id));
+      const response = await collectionsAPI.create(newCollectionData);
+      if (response.success) {
+        await loadCollections();
+        setShowCreateCollection(false);
+        setNewCollectionData({ name: "", description: "", color: "#3B82F6" });
+      }
     } catch (error) {
-      alert("Failed to delete monitor");
+      console.error("Failed to create collection:", error);
+      alert("Failed to create collection");
     }
   };
 
-  const handleRunCheck = async (id) => {
-    setCheckingMonitors((prev) => new Set(prev).add(id));
-    try {
-      await monitorsAPI.triggerCheck(id);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await loadMonitors();
-    } catch (error) {
-      console.error("Failed to trigger check:", error);
-    } finally {
-      setCheckingMonitors((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-    }
+  const handleUpdate = async () => {
+    await Promise.all([loadMonitors(), loadCollections()]);
   };
+
+  // Group monitors by collection
+  const uncollectedMonitors = monitors.filter((m) => !m.collectionId);
+  const collectionMonitorsMap = {};
+
+  collections.forEach((collection) => {
+    collectionMonitorsMap[collection.id] = monitors.filter(
+      (m) => m.collectionId === collection.id
+    );
+  });
 
   // Filter monitors based on status
   const filteredMonitors = monitors.filter((monitor) => {
@@ -74,13 +84,107 @@ export default function MonitorsList() {
               Manage your monitoring targets
             </p>
           </div>
-          <Link
-            href="/monitors/new"
-            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
-          >
-            + Add Monitor
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/monitors/new"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+            >
+              + Add Monitor
+            </Link>
+            <button
+              onClick={() => setShowCreateCollection(true)}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+            >
+              + New Collection
+            </button>
+          </div>
         </div>
+
+        {/* Create Collection Modal */}
+        {showCreateCollection && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Create New Collection
+              </h3>
+              <form onSubmit={handleCreateCollection} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Collection Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCollectionData.name}
+                    onChange={(e) =>
+                      setNewCollectionData({
+                        ...newCollectionData,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Production APIs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={newCollectionData.description}
+                    onChange={(e) =>
+                      setNewCollectionData({
+                        ...newCollectionData,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Optional description"
+                    rows="3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Color
+                  </label>
+                  <input
+                    type="color"
+                    value={newCollectionData.color}
+                    onChange={(e) =>
+                      setNewCollectionData({
+                        ...newCollectionData,
+                        color: e.target.value,
+                      })
+                    }
+                    className="w-full h-10 px-1 py-1 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateCollection(false);
+                      setNewCollectionData({
+                        name: "",
+                        description: "",
+                        color: "#3B82F6",
+                      });
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                  >
+                    Create Collection
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Status Filters */}
         <div className="flex items-center space-x-2">
@@ -145,217 +249,75 @@ export default function MonitorsList() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Monitor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Uptime
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Latency
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Last Check
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMonitors.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="6"
-                      className="px-6 py-12 text-center text-gray-500"
-                    >
-                      No monitors match the selected filter
-                    </td>
-                  </tr>
-                ) : (
-                  filteredMonitors.map((monitor) => (
-                    <tr key={monitor.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <StatusIndicator status={monitor.status} size="md" />
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {monitor.name}
-                            </div>
-                            <div className="text-sm text-gray-500 break-all max-w-md">
-                              {monitor.url}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={monitor.status} size="md" />
-                          {!monitor.enabled && (
-                            <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 border border-gray-200">
-                              <svg
-                                className="w-3 h-3 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                                />
-                              </svg>
-                              Disabled
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {monitor.uptimePercentage || 0}%
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {monitor.lastLatency
-                          ? `${monitor.lastLatency}ms`
-                          : "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatRelativeTime(monitor.lastCheckTime)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          {/* Run Check Button */}
-                          <button
-                            onClick={() => handleRunCheck(monitor.id)}
-                            disabled={checkingMonitors.has(monitor.id)}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            title="Run check now"
-                          >
-                            {checkingMonitors.has(monitor.id) ? (
-                              <>
-                                <svg
-                                  className="animate-spin h-3 w-3 mr-1.5"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  ></circle>
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  ></path>
-                                </svg>
-                                Running
-                              </>
-                            ) : (
-                              <>
-                                <svg
-                                  className="h-3 w-3 mr-1.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                  />
-                                </svg>
-                                Run
-                              </>
-                            )}
-                          </button>
+          <div className="space-y-6">
+            {/* Collections */}
+            {collections.map((collection) => {
+              const collectionMonitors =
+                collectionMonitorsMap[collection.id] || [];
+              const filteredCollectionMonitors = collectionMonitors.filter(
+                (monitor) => {
+                  if (statusFilter === "all") return true;
+                  return monitor.status === statusFilter;
+                }
+              );
 
-                          {/* History Button */}
-                          <Link
-                            href={`/monitors/${monitor.id}/history`}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-                            title="View check history"
-                          >
-                            <svg
-                              className="h-3 w-3 mr-1.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                              />
-                            </svg>
-                            History
-                          </Link>
+              // Only show collection if it has monitors matching the filter (or show all if filter is "all")
+              if (
+                statusFilter === "all" ||
+                filteredCollectionMonitors.length > 0
+              ) {
+                return (
+                  <CollectionSection
+                    key={collection.id}
+                    collection={collection}
+                    monitors={
+                      statusFilter === "all"
+                        ? collectionMonitors
+                        : filteredCollectionMonitors
+                    }
+                    onUpdate={handleUpdate}
+                  />
+                );
+              }
+              return null;
+            })}
 
-                          {/* Edit Button */}
-                          <Link
-                            href={`/monitors/${monitor.id}/edit`}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-                            title="Edit monitor"
-                          >
-                            <svg
-                              className="h-3 w-3 mr-1.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                            Edit
-                          </Link>
+            {/* Uncollected Monitors */}
+            {uncollectedMonitors.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Uncollected Monitors ({uncollectedMonitors.length})
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Monitors not assigned to any collection
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                  {uncollectedMonitors
+                    .filter((monitor) => {
+                      if (statusFilter === "all") return true;
+                      return monitor.status === statusFilter;
+                    })
+                    .map((monitor) => (
+                      <MonitorCard
+                        key={monitor.id}
+                        monitor={monitor}
+                        onUpdate={handleUpdate}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
 
-                          {/* Delete Button */}
-                          <button
-                            onClick={() =>
-                              handleDelete(monitor.id, monitor.name)
-                            }
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-                            title="Delete monitor"
-                          >
-                            <svg
-                              className="h-3 w-3 mr-1.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            {/* Show message if no monitors match filter */}
+            {filteredMonitors.length === 0 && monitors.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <p className="text-gray-500">
+                  No monitors match the selected filter
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

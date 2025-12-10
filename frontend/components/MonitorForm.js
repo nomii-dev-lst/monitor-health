@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDashboard } from "../contexts/DashboardContext";
 
 export default function MonitorForm({
   initialData = {},
@@ -6,9 +7,11 @@ export default function MonitorForm({
   onCancel,
   isLoading,
 }) {
+  const { collections } = useDashboard();
   const [formData, setFormData] = useState({
     name: initialData.name || "",
     url: initialData.url || "",
+    collectionId: initialData.collectionId || null,
     authType: initialData.authType || "none",
     authConfig: initialData.authConfig || {},
     validationRules: initialData.validationRules || {
@@ -97,6 +100,32 @@ export default function MonitorForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
               placeholder="https://api.example.com/health"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Collection
+            </label>
+            <select
+              value={formData.collectionId || ""}
+              onChange={(e) =>
+                handleChange(
+                  "collectionId",
+                  e.target.value ? parseInt(e.target.value) : null
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">Uncollected</option>
+              {collections.map((collection) => (
+                <option key={collection.id} value={collection.id}>
+                  {collection.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-sm text-gray-500 mt-1">
+              Optional: Organize monitors into collections
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

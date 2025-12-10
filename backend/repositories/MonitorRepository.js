@@ -19,6 +19,7 @@ export class MonitorRepository {
       .insert(monitors)
       .values({
         userId: monitorData.userId,
+        collectionId: monitorData.collectionId || null,
         name: monitorData.name,
         url: monitorData.url,
         authType: monitorData.authType || 'none',
@@ -132,6 +133,35 @@ export class MonitorRepository {
       .select()
       .from(monitors)
       .where(eq(monitors.userId, userId))
+      .orderBy(desc(monitors.createdAt));
+  }
+
+  /**
+   * Find monitors by collection ID
+   * @param {Number} collectionId - Collection ID
+   * @returns {Array} Array of monitors
+   */
+  static async findByCollectionId(collectionId) {
+    const db = getDb();
+    return await db
+      .select()
+      .from(monitors)
+      .where(eq(monitors.collectionId, collectionId))
+      .orderBy(desc(monitors.createdAt));
+  }
+
+  /**
+   * Find uncollected monitors by user ID
+   * @param {Number} userId - User ID
+   * @returns {Array} Array of monitors without collection
+   */
+  static async findUncollectedByUserId(userId) {
+    const db = getDb();
+    const { isNull } = await import('drizzle-orm');
+    return await db
+      .select()
+      .from(monitors)
+      .where(and(eq(monitors.userId, userId), isNull(monitors.collectionId)))
       .orderBy(desc(monitors.createdAt));
   }
 

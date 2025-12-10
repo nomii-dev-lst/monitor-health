@@ -5,7 +5,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { monitorsAPI, dashboardAPI, logsAPI } from "../lib/api";
+import { monitorsAPI, dashboardAPI, logsAPI, collectionsAPI } from "../lib/api";
 import { useAuth } from "./AuthContext";
 
 const DashboardContext = createContext();
@@ -20,6 +20,7 @@ export function useDashboard() {
 
 export function DashboardProvider({ children }) {
   const [monitors, setMonitors] = useState([]);
+  const [collections, setCollections] = useState([]);
   const [summary, setSummary] = useState(null);
   const [logs, setLogs] = useState([]);
   const [logsStats, setLogsStats] = useState(null);
@@ -36,6 +37,7 @@ export function DashboardProvider({ children }) {
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       setMonitors([]);
+      setCollections([]);
       setSummary(null);
       return;
     }
@@ -46,13 +48,18 @@ export function DashboardProvider({ children }) {
       return;
     }
     try {
-      const [monitorsRes, summaryRes] = await Promise.all([
+      const [monitorsRes, collectionsRes, summaryRes] = await Promise.all([
         monitorsAPI.getAll(),
+        collectionsAPI.getAll(),
         dashboardAPI.getSummary(),
       ]);
 
       if (monitorsRes.success) {
         setMonitors(monitorsRes.monitors);
+      }
+
+      if (collectionsRes.success) {
+        setCollections(collectionsRes.data);
       }
 
       if (summaryRes.success) {
@@ -111,10 +118,23 @@ export function DashboardProvider({ children }) {
     }
   }, [isAuthenticated]);
 
-
+  const loadCollections = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+    try {
+      const response = await collectionsAPI.getAll();
+      if (response.success) {
+        setCollections(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load collections:", error);
+    }
+  }, [isAuthenticated]);
 
   const value = {
     monitors,
+    collections,
     summary,
     logs,
     logsStats,
@@ -122,9 +142,11 @@ export function DashboardProvider({ children }) {
     isLoading,
     loadDashboard,
     loadMonitors,
+    loadCollections,
     loadLogs,
     loadLogsStats,
     setMonitors,
+    setCollections,
     setSummary,
     setLogs,
     setLogsStats,

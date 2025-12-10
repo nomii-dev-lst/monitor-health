@@ -19,6 +19,7 @@ import settingsRoutes from './routes/settings.js';
 import logsRoutes from './routes/logs.js';
 import dashboardRoutes from './routes/dashboard.js';
 import sseRoutes from './routes/sse.js';
+import collectionsRoutes from './routes/collections.js';
 // import apiDocsRoute from './routes/api.js';
 
 const app = express();
@@ -61,6 +62,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/monitors', monitorRoutes);
+app.use('/api/collections', collectionsRoutes);
 app.use('/api/checks', checkRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/logs', logsRoutes);

@@ -107,6 +107,7 @@ export async function createMonitor(req, res) {
       checkInterval,
       alertEmails,
       enabled,
+      collectionId,
     } = req.body;
 
     if (!name || !url) {
@@ -123,6 +124,7 @@ export async function createMonitor(req, res) {
 
     const monitor = await MonitorRepository.create({
       userId: req.user.id, // Add current user ID
+      collectionId: collectionId || null,
       name,
       url,
       authType: authType || 'none',
@@ -176,6 +178,7 @@ export async function updateMonitor(req, res) {
       checkInterval,
       alertEmails,
       enabled,
+      collectionId,
     } = req.body;
 
     const monitor = await MonitorRepository.findById(id);
@@ -222,6 +225,9 @@ export async function updateMonitor(req, res) {
     }
     if (enabled !== undefined) {
       updates.enabled = enabled;
+    }
+    if (collectionId !== undefined) {
+      updates.collectionId = collectionId;
     }
 
     if (

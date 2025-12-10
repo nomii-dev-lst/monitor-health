@@ -20,11 +20,27 @@ CREATE INDEX IF NOT EXISTS username_idx ON users(username);
 CREATE INDEX IF NOT EXISTS email_idx ON users(email);
 
 -- ============================================
+-- COLLECTIONS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS collections (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  color VARCHAR(7) DEFAULT '#3B82F6',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS collection_user_id_idx ON collections(user_id);
+
+-- ============================================
 -- MONITORS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS monitors (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  collection_id INTEGER REFERENCES collections(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   url TEXT NOT NULL,
   auth_type VARCHAR(50) NOT NULL DEFAULT 'none',
@@ -45,6 +61,7 @@ CREATE TABLE IF NOT EXISTS monitors (
 );
 
 CREATE INDEX IF NOT EXISTS user_id_idx ON monitors(user_id);
+CREATE INDEX IF NOT EXISTS collection_id_idx ON monitors(collection_id);
 CREATE INDEX IF NOT EXISTS enabled_next_check_idx ON monitors(enabled, next_check_time);
 CREATE INDEX IF NOT EXISTS status_idx ON monitors(status);
 

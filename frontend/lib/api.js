@@ -247,6 +247,58 @@ export const dashboardAPI = {
   },
 };
 
+// Collections API
+export const collectionsAPI = {
+  getAll: async () => {
+    const response = await api.get("/api/collections");
+    return response.data;
+  },
+
+  getById: async (id) => {
+    const response = await api.get(`/api/collections/${id}`);
+    return response.data;
+  },
+
+  create: async (data) => {
+    const response = await api.post("/api/collections", data);
+    return response.data;
+  },
+
+  update: async (id, data) => {
+    const response = await api.put(`/api/collections/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/api/collections/${id}`);
+    return response.data;
+  },
+
+  getMonitors: async (id) => {
+    const response = await api.get(`/api/collections/${id}/monitors`);
+    return response.data;
+  },
+
+  checkAll: async (id) => {
+    const response = await api.post(`/api/collections/${id}/check-all`);
+    return response.data;
+  },
+
+  addMonitor: async (id, monitorId) => {
+    const response = await api.post(`/api/collections/${id}/monitors`, {
+      monitorId,
+    });
+    return response.data;
+  },
+
+  removeMonitor: async (id, monitorId) => {
+    const response = await api.delete(
+      `/api/collections/${id}/monitors/${monitorId}`
+    );
+    return response.data;
+  },
+};
+
 // Logs API
 export const logsAPI = {
   getAll: async (limit = 100, offset = 0) => {
