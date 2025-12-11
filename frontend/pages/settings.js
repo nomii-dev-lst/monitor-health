@@ -64,7 +64,7 @@ export default function Settings() {
 
       setMessage({
         type: "success",
-        text: "Alert settings saved successfully!",
+        text: "Settings saved successfully!",
       });
     } catch (error) {
       setMessage({
@@ -83,13 +83,14 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Alert Settings</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Configure email alert preferences. SMTP is configured via backend
-            .env file.
-          </p>
+      <div className="min-h-screen space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Configure your application preferences and alert settings.
+            </p>
+          </div>
         </div>
 
         {message.text && (
@@ -161,7 +162,7 @@ export default function Settings() {
               disabled={isLoading}
               className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Saving..." : "Save Alert Settings"}
+              {isLoading ? "Saving..." : "Save Settings"}
             </button>
           </div>
         </form>

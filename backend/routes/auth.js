@@ -1,6 +1,13 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { signup, login, getCurrentUser, refreshToken, logout } from '../controllers/authController.js';
+import {
+  signup,
+  login,
+  getCurrentUser,
+  refreshToken,
+  logout,
+  changePassword,
+} from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -27,6 +34,12 @@ router.get('/me', authenticateToken, getCurrentUser);
  * Refresh access token using refresh token from cookie
  */
 router.post('/refresh', refreshToken);
+
+/**
+ * POST /api/auth/change-password
+ * Change user's password
+ */
+router.post('/change-password', authenticateToken, changePassword);
 
 /**
  * POST /api/auth/logout

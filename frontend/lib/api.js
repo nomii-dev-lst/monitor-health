@@ -159,6 +159,14 @@ export const authAPI = {
     const response = await api.get("/api/auth/me");
     return response.data;
   },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const response = await api.post("/api/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  },
 };
 
 // Monitors API

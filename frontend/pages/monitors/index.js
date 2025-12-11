@@ -2,19 +2,16 @@ import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import Loading from "../../components/Loading";
 import Link from "next/link";
-import { monitorsAPI, collectionsAPI } from "../../lib/api";
-import { formatRelativeTime } from "../../lib/utils";
-import StatusBadge, { StatusIndicator } from "../../components/StatusBadge";
+import { collectionsAPI } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useDashboard } from "../../contexts/DashboardContext";
 import CollectionSection from "../../components/CollectionSection";
-import MonitorCard from "../../components/MonitorCard";
+import MonitorListTable from "../../components/MonitorListTable";
 
 export default function MonitorsList() {
   const { loading: authLoading, isAuthenticated } = useAuth();
   const { monitors, collections, loadMonitors, loadCollections, setMonitors } =
     useDashboard();
-  const [checkingMonitors, setCheckingMonitors] = useState(new Set());
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoadingMonitors, setIsLoadingMonitors] = useState(true);
   const [showCreateCollection, setShowCreateCollection] = useState(false);
@@ -293,20 +290,13 @@ export default function MonitorsList() {
                     Monitors not assigned to any collection
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                  {uncollectedMonitors
-                    .filter((monitor) => {
-                      if (statusFilter === "all") return true;
-                      return monitor.status === statusFilter;
-                    })
-                    .map((monitor) => (
-                      <MonitorCard
-                        key={monitor.id}
-                        monitor={monitor}
-                        onUpdate={handleUpdate}
-                      />
-                    ))}
-                </div>
+                <MonitorListTable
+                  monitors={uncollectedMonitors.filter((monitor) => {
+                    if (statusFilter === "all") return true;
+                    return monitor.status === statusFilter;
+                  })}
+                  onUpdate={handleUpdate}
+                />
               </div>
             )}
 

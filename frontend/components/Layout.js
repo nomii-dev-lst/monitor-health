@@ -1,113 +1,114 @@
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { useAuth } from '../contexts/AuthContext';
-import { useDashboard } from '../contexts/DashboardContext';
+import { useRouter } from "next/router";
+import Link from "next/link";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  FiHome,
+  FiActivity,
+  FiFileText,
+  FiSettings,
+  FiLogOut,
+} from "react-icons/fi";
 
 export default function Layout({ children }) {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { isRunningAll, runAllProgress } = useDashboard();
 
   const handleLogout = () => {
     logout();
   };
 
+  const navItems = [
+    { name: "Dashboard", href: "/dashboard", icon: FiHome },
+    { name: "Monitors", href: "/monitors", icon: FiActivity },
+    { name: "Logs", href: "/logs", icon: FiFileText },
+    { name: "Settings", href: "/settings", icon: FiSettings },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/dashboard" className="flex items-center">
-                <span className="text-2xl font-bold text-primary-600">MonitorHealth</span>
-              </Link>
-              
-              <div className="hidden md:flex space-x-4">
-                <Link
-                  href="/dashboard"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    router.pathname === '/dashboard'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/monitors"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    router.pathname.startsWith('/monitors')
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Monitors
-                </Link>
-                <Link
-                  href="/logs"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    router.pathname === '/logs'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Logs
-                </Link>
-                <Link
-                  href="/settings"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    router.pathname === '/settings'
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Settings
-                </Link>
-              </div>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-6 z-50">
+        {/* Logo */}
+        <div className="mb-8">
+          <Link href="/dashboard">
+            <div className="w-10 h-10 relative rounded-full overflow-hidden cursor-pointer">
+              <img
+                src="/logos/linesquare_technologies_logo.jpg"
+                alt="LineSquare"
+                className="w-full h-full object-cover"
+              />
             </div>
+          </Link>
+        </div>
 
-            <div className="flex items-center space-x-4">
-              {isRunningAll && (
-                <div className="flex items-center space-x-2 px-3 py-1 bg-primary-50 border border-primary-200 rounded-md">
-                  <svg className="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="text-sm font-medium text-primary-700">
-                    Running checks: {runAllProgress.current}/{runAllProgress.total}
-                  </span>
-                </div>
-              )}
-              {user && (
-                <span className="text-sm text-gray-600">
-                  Welcome, <span className="font-medium">{user.username}</span>
-                </span>
-              )}
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+        {/* Navigation Links */}
+        <nav className="flex-1 w-full flex flex-col items-center space-y-4">
+          {navItems.map((item) => {
+            const isActive =
+              router.pathname === item.href ||
+              (item.href !== "/dashboard" &&
+                router.pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`group relative p-3 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? "bg-primary-50 text-primary-600"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                }`}
               >
-                Logout
-              </button>
+                <item.icon className="w-6 h-6" />
+
+                {/* Tooltip */}
+                <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+                  {item.name}
+                  {/* Arrow */}
+                  <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Actions Container */}
+        <div className="flex flex-col items-center space-y-4 mt-auto">
+          {/* User Profile */}
+          {user && (
+            <Link href="/profile" className="group relative p-1">
+              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold cursor-pointer ring-2 ring-transparent group-hover:ring-primary-200 transition-all">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+              {/* Tooltip */}
+              <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+                {user.username}
+                <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+              </div>
+            </Link>
+          )}
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="group relative p-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
+          >
+            <FiLogOut className="w-6 h-6" />
+            {/* Tooltip */}
+            <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+              Logout
+              <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
             </div>
-          </div>
+          </button>
         </div>
-      </nav>
+      </aside>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-sm text-gray-500">
-            MonitorHealth - Self-hosted API Monitoring System
-          </p>
-        </div>
-      </footer>
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto p-8">
+          <div className="max-w-6xl mx-auto">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

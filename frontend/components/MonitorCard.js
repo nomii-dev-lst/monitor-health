@@ -14,9 +14,6 @@ export default function MonitorCard({ monitor, onCheckComplete }) {
     setIsChecking(true);
     try {
       await monitorsAPI.triggerCheck(monitor.id);
-      // Wait a bit for the check to complete
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Use context's loadDashboard if available, otherwise use callback
       if (loadDashboard) {
         await loadDashboard();
       } else if (onCheckComplete) {
@@ -24,7 +21,6 @@ export default function MonitorCard({ monitor, onCheckComplete }) {
       }
     } catch (error) {
       console.error("Check failed:", error);
-      // Show error in console, but don't alert
     } finally {
       setIsChecking(false);
     }
@@ -43,6 +39,7 @@ export default function MonitorCard({ monitor, onCheckComplete }) {
               <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
                 {monitor.name}
               </h3>
+              <span></span>
               {!monitor.enabled && (
                 <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded border border-gray-200">
                   <svg

@@ -280,6 +280,79 @@ export async function refreshToken(req, res) {
   }
 }
 
+/**
+ * Change Password - Update user's password
+ */
+export async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required',
+      });
+    }
+
+    // Validate new password length
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long',
+      });
+    }
+
+    // Get user with password
+    const user = await UserRepository.findByIdWithPassword(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await UserRepository.comparePassword(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Update password
+    await UserRepository.updateById(userId, { password: newPassword });
+
+    logger.info('Password changed successfully', {
+      type: 'auth',
+      action: 'password_change',
+      userId: userId,
+    });
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    logger.error('Password change failed', {
+      type: 'auth',
+      action: 'password_change_error',
+      userId: req.user?.id,
+      error: error.message,
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+    });
+  }
+}
+
 export async function logout(req, res) {
   try {
     // Stop user's monitors

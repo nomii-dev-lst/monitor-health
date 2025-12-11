@@ -1,10 +1,10 @@
-import { formatDate } from '../lib/utils';
+import { formatDate } from "../lib/utils";
 
 export default function CheckDetailModal({ check, onClose }) {
   if (!check) return null;
 
   const formatResponseData = (data) => {
-    if (!data) return 'No response data';
+    if (!data) return "No response data";
     try {
       const parsed = JSON.parse(data);
       return JSON.stringify(parsed, null, 2);
@@ -34,8 +34,18 @@ export default function CheckDetailModal({ check, onClose }) {
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-500"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -50,9 +60,9 @@ export default function CheckDetailModal({ check, onClose }) {
                 <div className="mt-1">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      check.status === 'success'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      check.status === "success"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                     }`}
                   >
                     {check.status}
@@ -61,9 +71,11 @@ export default function CheckDetailModal({ check, onClose }) {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">HTTP Status</div>
+                <div className="text-sm font-medium text-gray-500">
+                  HTTP Status
+                </div>
                 <div className="mt-1 text-sm font-semibold text-gray-900">
-                  {check.httpStatus || 'N/A'}
+                  {check.httpStatus || "N/A"}
                 </div>
               </div>
 
@@ -75,7 +87,9 @@ export default function CheckDetailModal({ check, onClose }) {
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Checked At</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Checked At
+                </div>
                 <div className="mt-1 text-sm text-gray-900">
                   {formatDate(check.checkedAt)}
                 </div>
@@ -85,7 +99,9 @@ export default function CheckDetailModal({ check, onClose }) {
             {/* Error Message */}
             {check.errorMessage && (
               <div>
-                <div className="text-sm font-medium text-gray-700 mb-2">Error Message</div>
+                <div className="text-sm font-medium text-gray-700 mb-2">
+                  Error Message
+                </div>
                 <div className="bg-red-50 border border-red-200 rounded-md p-3">
                   <p className="text-sm text-red-800">{check.errorMessage}</p>
                 </div>
@@ -95,11 +111,15 @@ export default function CheckDetailModal({ check, onClose }) {
             {/* Validation Errors */}
             {check.validationErrors && check.validationErrors.length > 0 && (
               <div>
-                <div className="text-sm font-medium text-gray-700 mb-2">Validation Errors</div>
+                <div className="text-sm font-medium text-gray-700 mb-2">
+                  Validation Errors
+                </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                   <ul className="list-disc list-inside space-y-1">
                     {check.validationErrors.map((error, idx) => (
-                      <li key={idx} className="text-sm text-yellow-800">{error}</li>
+                      <li key={idx} className="text-sm text-yellow-800">
+                        {error}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -108,7 +128,9 @@ export default function CheckDetailModal({ check, onClose }) {
 
             {/* Response Data */}
             <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Response Data</div>
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                Response Data
+              </div>
               <div className="bg-gray-50 border border-gray-200 rounded-md p-4 overflow-x-auto">
                 <pre className="text-xs text-gray-800 font-mono whitespace-pre-wrap break-words">
                   {formatResponseData(check.responseData)}
@@ -123,15 +145,21 @@ export default function CheckDetailModal({ check, onClose }) {
 
             {/* Metadata */}
             <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Metadata</div>
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                Metadata
+              </div>
               <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Check ID:</span>
-                  <span className="text-gray-900 font-mono text-xs">{check.id}</span>
+                  <span className="text-gray-900 font-mono text-xs">
+                    {check.id}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Monitor ID:</span>
-                  <span className="text-gray-900 font-mono text-xs">{check.monitorId}</span>
+                  <span className="text-gray-900 font-mono text-xs">
+                    {check.monitorId}
+                  </span>
                 </div>
               </div>
             </div>

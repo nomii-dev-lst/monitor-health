@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "nodemon server.js",
     "db:setup": "node setup-db.js",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
@@ -35,6 +35,7 @@
     "mongoose": "^8.20.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.11",
+    "nodemon": "^3.1.11",
     "p-limit": "^7.2.0",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
